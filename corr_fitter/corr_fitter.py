@@ -5,10 +5,13 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 class fitter(object):
+    '''
+    The `fitter` class is designed to fit models to hyperon data using least squares fitting.
+    It takes in the prior information, raw correlator data, model information.
+    '''
 
     def __init__(self, n_states,prior, t_period,t_range,states,
                  p_dict=None,raw_corrs=None,model_type=None,simult=None):
-
         self.n_states = n_states
         self.t_period = t_period
         self.t_range = t_range

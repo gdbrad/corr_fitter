@@ -150,6 +150,7 @@ class corr_fit_analysis(object):
 
         # temp_fit = {}
         if index in list(self.fits.keys()):
+            print(f"Using existing fit for index: {index}")
             return self.fits[index]
         else:
             temp_fit = fitter(n_states=n_states,prior=self.prior,p_dict=self.p_dict, 
@@ -157,9 +158,9 @@ class corr_fit_analysis(object):
                             t_period=t_period,model_type=self.model_type, raw_corrs=self.corr_gv).get_fit()
     
             self.fits[index] = temp_fit
+            print(f"Created new fit for index: {index}")
             return temp_fit
-
-    # type should be either "corr, "gA", or "gV"
+        
     def _get_models(self, model_type=None):
         
         if model_type is None:
@@ -361,7 +362,6 @@ class corr_fit_analysis(object):
                 if vary_start:
                     t_range[model_type] = [ti, t_end]
                     temp_fit = self.get_fit(t_range, n_states_dict)
-                    print(temp_fit)
                 else:
                     t_range[model_type] = [t_start, ti]
                     temp_fit = self.get_fit(t_range, n_states_dict)
