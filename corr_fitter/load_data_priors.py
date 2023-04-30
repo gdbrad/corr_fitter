@@ -3,9 +3,23 @@ import gvar as gv
 import h5py as h5 
 import numpy as np 
 import os 
-import bs_utils as bs 
+import corr_fitter.bs_utils as bs 
 
+def generate_latex_line(hyperon_fit):
+    ordered_keys = ['proton_E0', 'xi_E0', 'sigma_E0', 'lam_E0', 'xi_st_E0', 'delta_E0', 'sigma_st_E0']
+    latex_line = ""
 
+    for key in ordered_keys:
+        if key in hyperon_fit.p:
+            p = hyperon_fit.p[key]
+            latex_line += f"{p} & "
+        else:
+            latex_line += "& "
+
+    # Remove the last ampersand and space
+    latex_line = latex_line[:-2]
+
+    return latex_line
 
 def pickle_out(fit_out,out_path,species=None):
     if not os.path.exists(out_path):
@@ -56,35 +70,14 @@ def fit_keys(fit_out):
         output[observable] = np.intersect1d(keys1, keys2)
     return output
 
-
-def print_posterior(out_path):
-    posterior = {}
-    post_out = gv.load(out_path+"fit_params")
-    posterior['delta_E0'] = post_out['p']['delta_E0']
-    posterior['delta_E1'] = np.exp(post_out['p']['delta_log(dE)'][0])+posterior['delta_E0']
-    posterior['lam_E0'] = post_out['p']['lam_E0']
-    posterior['lam_E1'] = np.exp(post_out['p']['lam_log(dE)'][0])+posterior['lam_E0']
-    posterior['proton_E0'] = post_out['p']['proton_E0']
-    posterior['proton_E1'] = np.exp(post_out['p']['proton_log(dE)'][0])+posterior['proton_E0']
-    posterior['sigma_E0'] = post_out['p']['sigma_E0']
-    posterior['sigma_E1'] = np.exp(post_out['p']['sigma_log(dE)'][0]) + posterior['sigma_E0']
-    posterior['sigma_st_E0'] = post_out['p']['sigma_E0']
-    posterior['sigma_st_E1'] = np.exp(post_out['p']['sigma_log(dE)'][0]) + posterior['sigma_E0']
-    posterior['xi_E0'] = post_out['p']['xi_E0']
-    posterior['xi_E1'] = np.exp(post_out['p']['xi_log(dE)'][0]) + posterior['xi_E0']
-    posterior['xi_st_E0'] = post_out['p']['xi_st_E0']
-    posterior['xi_st_E1'] = np.exp(post_out['p']['xi_st_log(dE)'][0]) + posterior['xi_st_E0']
-
-
-    return posterior
 def get_raw_corr(file_h5,abbr,particle,normalize=None):
     data = {}
     data_normalized = {}
     particle_path = '/'+abbr+'/'+particle
     with h5.File(file_h5,"r") as f:
         if f[particle_path].shape[3] == 1:
-            data['SS'] = f[particle_path][:, :, 0, 0].real
-            data['PS'] = f[particle_path][:, :, 1, 0].real 
+            data['SS'] = f[particle_path][:, :, 0, 0].real.astype(np.float64)
+            data['PS'] = f[particle_path][:, :, 1, 0].real .astype(np.float64)
             if normalize:
                 for key in ['SS','PS']:
                     data_normalized[key] = data[key] /np.mean(data[key][:,0])

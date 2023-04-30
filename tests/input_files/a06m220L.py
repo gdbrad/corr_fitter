@@ -3,8 +3,7 @@ import numpy as np
 p_dict = {
     'abbr' : 'a06m220L',
     'part' : ['delta_pp', 'kplus', 'lambda_z', 'omega_m', 'piplus', 'proton', 'sigma_p', 'sigma_star_p', 'xi_star_z', 'xi_z'], 
-    'particles' : ['proton'],
-    'meson_states' : ['piplus','kplus'],
+    'particles' : ['proton','lam','sigma','sigma_st','xi','xi_st','delta'],
     'hyperons' : ['lambda_z', 'sigma_p', 'sigma_star_p', 'xi_star_z', 'xi_z'], 
     'srcs'     :['S'],
     'snks'     :['SS','PS'],
@@ -17,10 +16,7 @@ p_dict = {
         'xi_st' : [12,30],
         'sigma_st' : [12,30],
         'lam' : [12,30],
-        'pi' : [5,30],
-        'kplus': [8,28],
-        'hyperons':   [12,30],
-        'all':   [12,30]
+        'hyperons': [12,30],
     },
 
     'tag':{

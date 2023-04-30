@@ -84,8 +84,8 @@ class fitter(object):
                         }
                         models = np.append(models,
                                 baryon_model(datatag=datatag+"_"+sink,
-                                t=list(range(self.t_range[datatag][0], self.t_range[datatag][1])),
-                                param_keys=param_keys, n_states=self.n_states[datatag]))
+                                t=list(range(self.t_range[0], self.t_range[1])),
+                                param_keys=param_keys, n_states=self.n_states[self.model_type]))
         return models 
 
     # data array needs to match size of t array
@@ -93,7 +93,7 @@ class fitter(object):
         data = {}
         for corr_type in ['lam', 'sigma', 'sigma_st', 'xi', 'xi_st','proton','delta']:
             for sinksrc in list(['SS','PS']):
-                data[corr_type + '_' + sinksrc] = self.raw_corrs[corr_type][sinksrc][self.t_range[corr_type][0]:self.t_range[corr_type][1]]
+                data[corr_type + '_' + sinksrc] = self.raw_corrs[corr_type][sinksrc][self.t_range[0]:self.t_range[1]]
         return data
 
     def _make_prior(self,prior):
@@ -165,13 +165,10 @@ class baryon_model(lsqfit.MultiFitterModel):
         
         return np.exp(self.fcn_effective_mass(p, t)*t) * self.fitfcn(p, t)
 
-    # The prior determines the variables that will be fit by multifitter --
-    # each entry in the prior returned by this function will be fitted
     def buildprior(self, prior, mopt=None, extend=False):
-        # Extract the model's parameters from prior.
+        ''' Extract the model's parameters from prior.'''
         return prior
 
     def builddata(self, data):
-        # Extract the model's fit data from data.
-        # Key of data must match model's datatag!
+        ''' Key of data must match model's datatag'''
         return data[self.datatag]
