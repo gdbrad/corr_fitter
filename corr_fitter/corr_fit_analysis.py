@@ -24,8 +24,8 @@ def plot_fit_parameters(all_baryons, p_dict, abbr):
     colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
     markers = ['o', 's', '^', 'v', 'D', 'P', 'X']
 
-    n_particles = len(p_dict['tag'].keys())
-    fig, axs = plt.subplots(3, n_particles, figsize=(4 * n_particles, 12))
+    fig, axs = plt.subplots(1, 2, figsize=(15, 5))
+    fig.suptitle(abbr, fontsize=24, y=1.05)
 
     cmap = matplotlib.cm.get_cmap('rainbow')
     norm = matplotlib.colors.Normalize(vmin=0.25, vmax=1.75)
@@ -52,37 +52,47 @@ def plot_fit_parameters(all_baryons, p_dict, abbr):
         y2_upper = np.repeat(best_fit_E0 + E0_errors[best_fit_idx], len(tp))
         y2_lower = np.repeat(best_fit_E0 - E0_errors[best_fit_idx], len(tp))
 
-        axs[0, i].plot(tp, y2, '--', color=colors[i])
-        axs[0, i].fill_between(tp, y2_lower, y2_upper, facecolor=colors[i], alpha=0.25)
+        axs[0].plot(tp, y2, '--', color=colors[i])
+        axs[0].fill_between(tp, y2_lower, y2_upper, facecolor=colors[i], alpha=0.25)
 
         # Plot E0 fit parameters with error bars
-        axs[0, i].errorbar(t_values, E0_values, yerr=E0_errors, fmt=markers[i], color=colors[i], label=particle)
-        axs[0, i].set_title(particle)
-        axs[0, i].set_ylabel('E0 fit parameter')
-        axs[0, i].legend()
+        axs[0].errorbar(t_values, E0_values, yerr=E0_errors, fmt=markers[i], color=colors[i], label=particle)
+        axs[0].set_title('Hyperon stability plot for n=2 states')
+        axs[0].set_ylabel('E0 fit parameter')
+        axs[0].legend()
 
-        # Plot Q values
-        axs[1, i].plot(t_values, q_values, markers[i], color=colors[i])
-        axs[1, i].set_ylabel('Q value')
+    # Q-value plot
+    ax = axs[1]
+    t_values = []
+    q_values = []
+    for t, fit_result in all_baryons.items():
+        t_values.append(t)
+        q_values.append(fit_result.Q)
+    ax.plot(t_values, q_values, marker='o', linestyle='')
+    ax.set_xlabel('Starting time slice')
+    ax.set_ylabel('Q-value')
 
-        # Plot chi-squared/dof heatmap
-        for t, chi_sq in zip(t_values, chi_sq_values):
-            color = cmap(norm(chi_sq))
-            axs[2, i].bar(t, 1, color=color, width=0.9)
+    # Chi2/dof color map
+    cmap = matplotlib.cm.get_cmap('rainbow')
+    norm = matplotlib.colors.Normalize(vmin=0.25, vmax=1.75)
+    chi2_dof_values = []
+    for t, fit_result in all_baryons.items():
+        chi2_dof_values.append(fit_result.chi2 / fit_result.dof)
+    colors = [cmap(norm(chi2_dof)) for chi2_dof in chi2_dof_values]
 
-        axs[2, i].set_ylim([0, 1])
-        axs[2, i].set_yticks([])
-        axs[2, i].set_ylabel('chi2/dof')
-        axs[2, i].set_xlabel('Starting time slice')
+    for t, chi2_dof, color in zip(t_values, chi2_dof_values, colors):
+        rect = plt.Rectangle((t - 0.5, 0), 1, chi2_dof, color=color)
+        axs[1].add_patch(rect)
 
-    # Colorbar for the chi-squared/dof heatmap
-    cax = fig.add_axes([0.93, 0.15, 0.02, 0.25])
+    cax = fig.add_axes([0.95, 0.15, 0.02, 0.7])
     colorbar = matplotlib.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm, orientation='vertical')
     colorbar.set_label(r'$\chi^2_\nu$', fontsize=24)
 
-   
-    plt.tight_layout()
     plt.show()
+
+
+
+# Example usage
 
 
 def analyze_hyperon_corrs(file_path, fit_params_path,model_type:str,bs:bool=False, bs_file:str=None, bs_path:str=None, bs_N:int=None, bs_seed:str=None):
