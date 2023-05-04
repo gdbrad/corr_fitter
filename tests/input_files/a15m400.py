@@ -10,17 +10,17 @@ p_dict = {
     'bs_seed' : 'a15m400',
 
    't_range' : {
-        'sigma' : [6,15],
-        'sigma_st' : [6,15],
-        'xi' :  [6,15],
-        'xi_st' : [6,15],
-        'proton' :   [6,15],
-        'delta' : [6,15],
-        'lam' : [6,15],
+        'sigma' : [6,25],
+        'sigma_st' : [6,25],
+        'xi' :  [6,25],
+        'xi_st' : [6,25],
+        'proton' :   [6,25],
+        'delta' : [6,25],
+        'lam' : [6,25],
         'pi' : [5,30],
         'kplus': [8,28],
-        'hyperons':   [6,15],
-        'all':   [6,15],
+        'hyperons':   [6,25],
+        'all':   [6,25],
 
 
     },

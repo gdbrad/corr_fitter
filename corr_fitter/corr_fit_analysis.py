@@ -24,13 +24,10 @@ def plot_fit_parameters(all_baryons, p_dict, abbr):
     colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
     markers = ['o', 's', '^', 'v', 'D', 'P', 'X']
 
-    fig, axs = plt.subplots(1, 2, figsize=(15, 5))
-    fig.suptitle(abbr, fontsize=24, y=1.05)
+    for particle_idx, particle in enumerate(p_dict['tag'].keys()):
+        fig, axs = plt.subplots(1, 2, figsize=(15, 5))
+        fig.suptitle(abbr + ' - ' + particle, fontsize=24, y=1.05)
 
-    cmap = matplotlib.cm.get_cmap('rainbow')
-    norm = matplotlib.colors.Normalize(vmin=0.25, vmax=1.75)
-
-    for i, particle in enumerate(p_dict['tag'].keys()):
         t_values = []
         E0_values = []
         E0_errors = []
@@ -52,47 +49,35 @@ def plot_fit_parameters(all_baryons, p_dict, abbr):
         y2_upper = np.repeat(best_fit_E0 + E0_errors[best_fit_idx], len(tp))
         y2_lower = np.repeat(best_fit_E0 - E0_errors[best_fit_idx], len(tp))
 
-        axs[0].plot(tp, y2, '--', color=colors[i])
-        axs[0].fill_between(tp, y2_lower, y2_upper, facecolor=colors[i], alpha=0.25)
+        axs[0].plot(tp, y2, '--', color=colors[particle_idx])
+        axs[0].fill_between(tp, y2_lower, y2_upper, facecolor=colors[particle_idx], alpha=0.25)
 
         # Plot E0 fit parameters with error bars
-        axs[0].errorbar(t_values, E0_values, yerr=E0_errors, fmt=markers[i], color=colors[i], label=particle)
+        axs[0].errorbar(t_values, E0_values, yerr=E0_errors, fmt=markers[particle_idx], color=colors[particle_idx], label=particle)
         axs[0].set_title('Hyperon stability plot for n=2 states')
         axs[0].set_ylabel('E0 fit parameter')
         axs[0].legend()
 
-    # Q-value plot
-    ax = axs[1]
-    t_values = []
-    q_values = []
-    for t, fit_result in all_baryons.items():
-        t_values.append(t)
-        q_values.append(fit_result.Q)
-    ax.plot(t_values, q_values, marker='o', linestyle='')
-    ax.set_xlabel('Starting time slice')
-    ax.set_ylabel('Q-value')
+        # Q-value plot
+        ax = axs[1]
+        ax.plot(t_values, q_values, marker='o', linestyle='')
+        ax.set_xlabel('Starting time slice')
+        ax.set_ylabel('Q-value')
 
-    # Chi2/dof color map
-    cmap = matplotlib.cm.get_cmap('rainbow')
-    norm = matplotlib.colors.Normalize(vmin=0.25, vmax=1.75)
-    chi2_dof_values = []
-    for t, fit_result in all_baryons.items():
-        chi2_dof_values.append(fit_result.chi2 / fit_result.dof)
-    colors = [cmap(norm(chi2_dof)) for chi2_dof in chi2_dof_values]
+        # Chi2/dof color map
+        cmap = matplotlib.cm.get_cmap('rainbow')
+        norm = matplotlib.colors.Normalize(vmin=0.25, vmax=1.75)
+        chi2_dof_values = [fit_result.chi2 / fit_result.dof for t, fit_result in all_baryons.items()]
+        colors = [cmap(norm(chi2_dof)) for chi2_dof in chi2_dof_values]
 
-    for t, chi2_dof, color in zip(t_values, chi2_dof_values, colors):
-        rect = plt.Rectangle((t - 0.5, 0), 1, chi2_dof, color=color)
-        axs[1].add_patch(rect)
+        for t, chi2_dof, color in zip(t_values, chi2_dof_values, colors):
+            rect = plt.Rectangle((t - 0.5, 0), 1, chi2_dof, color=color)
+            axs[1].add_patch(rect)
 
-    cax = fig.add_axes([0.95, 0.15, 0.02, 0.7])
-    colorbar = matplotlib.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm, orientation='vertical')
-    colorbar.set_label(r'$\chi^2_\nu$', fontsize=24)
-
-    plt.show()
-
-
-
-# Example usage
+        cax = fig.add_axes([0.95, 0.15, 0.02,0.7])
+        colorbar = matplotlib.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm, orientation='vertical')
+        colorbar.set_label(r'$\chi^2_\nu$', fontsize=24) 
+        plt.show()
 
 
 def analyze_hyperon_corrs(file_path, fit_params_path, t_end, model_type: str, bs: bool = False, bs_file: str = None,
@@ -209,11 +194,14 @@ class corr_fit_analysis(object):
             if data_gv is not None:
                 t_max = len(data_gv[list(data_gv.keys())[0]])
 
-        # if t_range is not None:
-        # t_start = np.min([t_range[key][0] for key in list(t_range.keys())])
-        # t_end = np.max([t_range[key][1] for key in list(t_range.keys())])
-        t_start = np.min(t_range[0])
-        t_end = np.max(t_range[1])
+        # Initialize t_range as a dictionary
+        if t_range is not None:
+            t_start = t_range[0]
+            t_end = t_range[1]
+            t_range = {model_type: [t_start, t_end]}
+        else:
+            t_range = {}
+
         if isinstance(n_states, int):
             max_n_states = n_states
         else:
@@ -259,9 +247,6 @@ class corr_fit_analysis(object):
         index = tuple((t_range[key][0], t_range[key][1], n_states[key]) for key in sorted(t_range.keys()))
         index = tuple((t_range[0], t_range[1], n_states[key]) for key in sorted(n_states.keys()))
 
-        # print(index)
-
-        # temp_fit = {}
         if index in list(self.fits.keys()):
             return self.fits[index]
         # if verbose:
@@ -279,15 +264,21 @@ class corr_fit_analysis(object):
     def _get_models(self, model_type=None):
         if model_type is None:
             return None
+        t=list(range(self.t_range[self.model_type][0], self.t_range[self.model_type][1]))
+
         return fitter(
             n_states=self.n_states, states=self.states,prior=self.prior,simult=self.simult, p_dict=self.p_dict, 
-            t_range=self.t_range,t_period=self.t_period,model_type=self.model_type,raw_corrs=self.corr_gv
+            t_range=t,t_period=self.t_period,model_type=self.model_type,raw_corrs=self.corr_gv
             )._make_models_simult_fit()
     
 
-    def _generate_data_from_fit(self, t, t_start=None, t_end=None, model_type=None, n_states=None):
+    def _generate_data_from_fit(self, t, t_range=None,t_start=None, t_end=None, model_type=None, n_states=None):
         if model_type is None:
             return None
+        if t_range is None:
+            t_range = self.t_range[model_type]
+        if n_states is None:
+            n_states = self.n_states
 
         if t_start is None:
             t_start = self.t_range[model_type][0]
@@ -299,9 +290,10 @@ class corr_fit_analysis(object):
         # Make
         t_range = {key : self.t_range[key] for key in list(self.t_range.keys())}
         t_range[model_type] = [t_start, t_end]
+        t = list(range(self.t_range[model_type][0], self.t_range[model_type][1]))
 
         models = self._get_models(model_type=model_type)
-        fit = self.get_fit(t_range=t_range, n_states=n_states)
+        fit = self.get_fit_forstab(t_range=t_range, n_states=n_states)
 
         output = {model.datatag : model.fitfcn(p=fit.p, t=t) for model in models}
         return output
@@ -313,7 +305,7 @@ class corr_fit_analysis(object):
         if dt is None:
             dt = 1
         eff_mass = {}
-        if len(corr_gv.keys()) == 14:
+        if len(corr_gv.keys()) == 14: #dont hardcode this 
             for key in corr_gv:
                 eff_mass[key] = 1/dt * np.log(corr_gv[key] / np.roll(corr_gv[key], -1))
         else:
@@ -333,7 +325,14 @@ class corr_fit_analysis(object):
         markers = ["o", "s"]
         colors = np.array(['tab:red', 'tab:blue', 'tab:green', 'tab:purple', 'tab:orange', 'tab:brown',
                         'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan'])
-        t = np.arange(t_plot_min, t_plot_max)
+        # t = np.arange(t_plot_min, t_plot_max)
+        t_range_model = self.t_range[model_type]
+        print(t_range_model[0])
+
+    # Update this line
+        t = list(range(t_range_model[0], t_range_model[1]))
+        t_range = [t_plot_min, t_plot_max]
+
         effective_mass = {}
 
         if self.corr_gv is None:
@@ -365,7 +364,7 @@ class corr_fit_analysis(object):
         if show_fit:
             t = np.linspace(t_plot_min - 2, t_plot_max + 2)
             dt = (t[-1] - t[0]) / (len(t) - 1)
-            fit_data_gv = self._generate_data_from_fit(model_type=model_type, t=t)
+            fit_data_gv = self._generate_data_from_fit(t_range=t_range,model_type=model_type, t=t)
             eff_mass_fit = {}
             for j, key in enumerate(fit_data_gv.keys()):
                 eff_mass_fit = self.compute_eff_mass(fit_data_gv, dt)[key][1:-1]
@@ -400,8 +399,7 @@ class corr_fit_analysis(object):
                 plt.close()
 
             return fig
-
-               
+    
 
     # def plot_stability(self, model_type=None, t_start=None, t_end=None, t_middle=None, vary_start=False, show_plot=True, n_states_array=None,fig_name=None):
 
