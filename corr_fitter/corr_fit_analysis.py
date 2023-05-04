@@ -95,7 +95,9 @@ def plot_fit_parameters(all_baryons, p_dict, abbr):
 # Example usage
 
 
-def analyze_hyperon_corrs(file_path, fit_params_path,model_type:str,bs:bool=False, bs_file:str=None, bs_path:str=None, bs_N:int=None, bs_seed:str=None):
+def analyze_hyperon_corrs(file_path, fit_params_path, t_end, model_type: str, bs: bool = False, bs_file: str = None,
+                          bs_path: str = None, bs_N: int = None, bs_seed: str = None, show_eff=True,
+                          t_plot_min=None, t_plot_max=None, show_fit=True):
     '''A wrapper to perform final analysis of hyperon spectrum'''
     sys.path.append(os.path.dirname(os.path.abspath(fit_params_path)))
     fp = importlib.import_module(fit_params_path.split('/')[-1].split('.py')[0])
@@ -108,24 +110,29 @@ def analyze_hyperon_corrs(file_path, fit_params_path,model_type:str,bs:bool=Fals
         'sigma': ld.get_raw_corr(file_path, p_dict['abbr'], particle='sigma_p'),
         'sigma_st': ld.get_raw_corr(file_path, p_dict['abbr'], particle='sigma_star_p'),
         'proton': ld.get_raw_corr(file_path, p_dict['abbr'], particle='proton'),
-        'delta': ld.get_raw_corr(file_path,p_dict['abbr'],particle='delta_pp')
+        'delta': ld.get_raw_corr(file_path, p_dict['abbr'], particle='delta_pp')
     }
 
-    bs_M = corrs['lam']['SS'].shape[0] #this could be any of the other corrs
+    bs_M = corrs['lam']['SS'].shape[0]  # this could be any of the other corrs
     all_baryons = {}
-    t = np.arange(12, 17 + 1) # TODO dont hardcode
+    t = np.arange(8, 17 + 1)  # TODO dont hardcode
     for ti in t:
-        t_range = [ti, 25]
-        corrs_copy = deepcopy(corrs) # need this or else gvars are passed to gv.dataset.avg_data() on subsequent runs of t_range
+        t_range = [ti, t_end]
+        corrs_copy = deepcopy(corrs)  # need this or else gvars are passed to gv.dataset.avg_data() on subsequent runs of t_range
         fit_analysis = corr_fit_analysis(t_range=t_range, simult=True, t_period=64,
                                          states=p_dict['hyperons'], p_dict=p_dict, n_states={'hyperons': 2},
                                          prior=prior, corr_gv=corrs_copy, model_type=model_type)
-        fit_result = fit_analysis.get_fit_forstab(t_range=t_range,n_states={'hyperons': 2})
+        if show_eff:
+            fit_analysis.plot_effective_mass(t_plot_min=t_plot_min, t_plot_max=t_plot_max,
+                                             model_type=model_type, show_fit=show_fit)
+
+        fit_result = fit_analysis.get_fit_forstab(t_range=t_range, n_states={'hyperons': 2})
         all_baryons[ti] = fit_result
         print(f"Fit result for t_range {t_range}: \n {fit_result}")
 
     # print("All fit results:")
     # print(all_baryons)
+
 
     # return my_fit
     # run bootstrapping routine -> bootstrapped h5 file based on baryon fit posterior
@@ -396,199 +403,199 @@ class corr_fit_analysis(object):
 
                
 
-    def plot_stability(self, model_type=None, t_start=None, t_end=None, t_middle=None, vary_start=False, show_plot=True, n_states_array=None,fig_name=None):
+    # def plot_stability(self, model_type=None, t_start=None, t_end=None, t_middle=None, vary_start=False, show_plot=True, n_states_array=None,fig_name=None):
 
-        # Set axes: first for quantity of interest (eg, E0)
-        ax = plt.axes([0.10,0.20,0.7,0.7])
+    #     # Set axes: first for quantity of interest (eg, E0)
+    #     ax = plt.axes([0.10,0.20,0.7,0.7])
 
-        # Markers for identifying n_states
-        markers = ["^", ">", "v", "<"]
+    #     # Markers for identifying n_states
+    #     markers = ["^", ">", "v", "<"]
 
-        # Color error bars by chi^2/dof
-        cmap = matplotlib.cm.get_cmap('rainbow_r')
-        norm = matplotlib.colors.Normalize(vmin=0.25, vmax=1.75)
+    #     # Color error bars by chi^2/dof
+    #     cmap = matplotlib.cm.get_cmap('rainbow_r')
+    #     norm = matplotlib.colors.Normalize(vmin=0.25, vmax=1.75)
 
-        fit_data = {}
-        if n_states_array is None:
-            fit_data[self.n_states[model_type]] = None
-        else:
-            for n_state in n_states_array:
-                fit_data[n_state] = None
+    #     fit_data = {}
+    #     if n_states_array is None:
+    #         fit_data[self.n_states[model_type]] = None
+    #     else:
+    #         for n_state in n_states_array:
+    #             fit_data[n_state] = None
 
-        if n_states_array is None:
-            spacing = [0]
-        else:
-            spacing = (np.arange(len(n_states_array)) - (len(n_states_array)-1)/2.0)/((len(n_states_array)-1)/2.0) *0.25
+    #     if n_states_array is None:
+    #         spacing = [0]
+    #     else:
+    #         spacing = (np.arange(len(n_states_array)) - (len(n_states_array)-1)/2.0)/((len(n_states_array)-1)/2.0) *0.25
 
-        # Make fits from [t, t_end], where t is >= t_end
-        if vary_start:
-            if t_start is None:
-                t_start = self.t_min
+    #     # Make fits from [t, t_end], where t is >= t_end
+    #     if vary_start:
+    #         if t_start is None:
+    #             t_start = self.t_min
 
-            if t_end is None:
-                t_end = self.t_range[model_type][1]
+    #         if t_end is None:
+    #             t_end = self.t_range[model_type][1]
 
-            if t_middle is None:
-                t_middle = int((t_start + 2*t_end)/3)
+    #         if t_middle is None:
+    #             t_middle = int((t_start + 2*t_end)/3)
 
-            plt.title("Stability plot, varying start\n Fitting [%s, %s], $N_{states} =$ %s"
-                      %("$t$", t_end, sorted(fit_data.keys())), fontsize = 24)
+    #         plt.title("Stability plot, varying start\n Fitting [%s, %s], $N_{states} =$ %s"
+    #                   %("$t$", t_end, sorted(fit_data.keys())), fontsize = 24)
 
-            t = np.arange(t_start, t_middle + 1)
-            print(t,"opt_t")
+    #         t = np.arange(t_start, t_middle + 1)
+    #         print(t,"opt_t")
 
-        # Vary end point instead
-        else:
-            if t_start is None:
-                t_start = self.t_range[model_type][0]
+    #     # Vary end point instead
+    #     else:
+    #         if t_start is None:
+    #             t_start = self.t_range[model_type][0]
 
-            if t_end is None:
-                t_end = self.t_max
+    #         if t_end is None:
+    #             t_end = self.t_max
 
-            if t_middle is None:
-                t_middle = int((2*t_start + t_end)/3)
+    #         if t_middle is None:
+    #             t_middle = int((2*t_start + t_end)/3)
 
-            plt.title("Stability plot, varying end\n Fitting [%s, %s], $N_{states} =$ %s"
-                      %(t_start, "$t$", sorted(fit_data.keys())), fontsize = 24)
-            t = np.arange(t_middle, t_end + 1)
+    #         plt.title("Stability plot, varying end\n Fitting [%s, %s], $N_{states} =$ %s"
+    #                   %(t_start, "$t$", sorted(fit_data.keys())), fontsize = 24)
+    #         t = np.arange(t_middle, t_end + 1)
 
-        for key in list(fit_data.keys()):
-            fit_data[key] = {
-                'y' : np.array([]),
-                'chi2/df' : np.array([]),
-                'Q' : np.array([]),
-                't' : np.array([])
-            }
+    #     for key in list(fit_data.keys()):
+    #         fit_data[key] = {
+    #             'y' : np.array([]),
+    #             'chi2/df' : np.array([]),
+    #             'Q' : np.array([]),
+    #             't' : np.array([])
+    #         }
 
-        for n_state in list(fit_data.keys()):
-            n_states_dict = self.n_states.copy()
-            n_states_dict[model_type] = n_state
-            for ti in t:
-                t_range = {key : self.t_range[key] for key in list(self.t_range.keys())}
-                if vary_start:
-                    t_range[model_type] = [ti, t_end]
-                    temp_fit = self.get_fit(t_range, n_states_dict)
-                else:
-                    t_range[model_type] = [t_start, ti]
-                    temp_fit = self.get_fit(t_range, n_states_dict)
-                # print(f"t_range: {t_range}")  # Add this print statement
-                # print(f"n_states_dict: {n_states_dict}")  # Add th
-                # temp_fit = self.get_fit(t_range, n_states_dict)
-                if temp_fit is not None:
-                    for corr in self.p_dict['particles']:
-                        fit_data[n_state]['y'] = np.append(fit_data[n_state]['y'], temp_fit.p[corr+'_E0'])
-                        fit_data[n_state]['chi2/df'] = np.append(fit_data[n_state]['chi2/df'], temp_fit.chi2 / temp_fit.dof)
-                        fit_data[n_state]['Q'] = np.append(fit_data[n_state]['Q'], temp_fit.Q)
-                        fit_data[n_state]['t'] = np.append(fit_data[n_state]['t'], ti)
+    #     for n_state in list(fit_data.keys()):
+    #         n_states_dict = self.n_states.copy()
+    #         n_states_dict[model_type] = n_state
+    #         for ti in t:
+    #             t_range = {key : self.t_range[key] for key in list(self.t_range.keys())}
+    #             if vary_start:
+    #                 t_range[model_type] = [ti, t_end]
+    #                 temp_fit = self.get_fit(t_range, n_states_dict)
+    #             else:
+    #                 t_range[model_type] = [t_start, ti]
+    #                 temp_fit = self.get_fit(t_range, n_states_dict)
+    #             # print(f"t_range: {t_range}")  # Add this print statement
+    #             # print(f"n_states_dict: {n_states_dict}")  # Add th
+    #             # temp_fit = self.get_fit(t_range, n_states_dict)
+    #             if temp_fit is not None:
+    #                 for corr in self.p_dict['particles']:
+    #                     fit_data[n_state]['y'] = np.append(fit_data[n_state]['y'], temp_fit.p[corr+'_E0'])
+    #                     fit_data[n_state]['chi2/df'] = np.append(fit_data[n_state]['chi2/df'], temp_fit.chi2 / temp_fit.dof)
+    #                     fit_data[n_state]['Q'] = np.append(fit_data[n_state]['Q'], temp_fit.Q)
+    #                     fit_data[n_state]['t'] = np.append(fit_data[n_state]['t'], ti)
 
-                        print("temp_fit.p[corr+'_E0']:", temp_fit.p[corr+'_E0'])
-                        print("fit_data[n_state]['y']:", fit_data[n_state]['y'])
-
-
-
-            # Color map for chi/df
-            cmap = matplotlib.cm.get_cmap('rainbow')
-            min_max = lambda x : [np.min(x), np.max(x)]
-            #minimum, maximum = min_max(fit_data['chi2/df'])
-            norm = matplotlib.colors.Normalize(vmin=0.25, vmax=1.75)
-
-            for i, n_state in enumerate(sorted(fit_data.keys())):
-                print(sorted(fit_data.keys()),"keys?")
-                for j, ti in enumerate(fit_data[n_state]['t']):
-                    color = cmap(norm(fit_data[n_state]['chi2/df'][j]))
-                    y = gv.mean(fit_data[n_state]['y'][j])
-                    yerr = gv.sdev(fit_data[n_state]['y'][j])
-
-                    alpha = 0.05
-                    if vary_start and ti == self.t_range[model_type][0]:
-                        alpha=0.35
-                    elif (not vary_start) and ti == self.t_range[model_type][1]:
-                        alpha=0.35
-
-                    plt.axvline(ti-0.5, linestyle='--', alpha=alpha)
-                    plt.axvline(ti+0.5, linestyle='--', alpha=alpha)
-
-                    ti = ti + spacing[i]
-                    plt.errorbar(ti, y, xerr = 0.0, yerr=yerr, fmt=markers[i%len(markers)], mec='k', mfc='white', ms=10.0,
-                        capsize=5.0, capthick=1.0, elinewidth=5.0, alpha=0.9, ecolor=color, label=r"$N$=%s"%n_state)
+    #                     print("temp_fit.p[corr+'_E0']:", temp_fit.p[corr+'_E0'])
+    #                     print("fit_data[n_state]['y']:", fit_data[n_state]['y'])
 
 
-            # Band for best result
 
-            best_fit = self.get_fit()
-            y_best = best_fit.p[corr+'_E0']
-            ylabel = r'$E_0$'
+    #         # Color map for chi/df
+    #         cmap = matplotlib.cm.get_cmap('rainbow')
+    #         min_max = lambda x : [np.min(x), np.max(x)]
+    #         #minimum, maximum = min_max(fit_data['chi2/df'])
+    #         norm = matplotlib.colors.Normalize(vmin=0.25, vmax=1.75)
 
-            tp = np.arange(t[0]-1, t[-1]+2)
-            tlim = (tp[0], tp[-1])
+    #         for i, n_state in enumerate(sorted(fit_data.keys())):
+    #             print(sorted(fit_data.keys()),"keys?")
+    #             for j, ti in enumerate(fit_data[n_state]['t']):
+    #                 color = cmap(norm(fit_data[n_state]['chi2/df'][j]))
+    #                 y = gv.mean(fit_data[n_state]['y'][j])
+    #                 yerr = gv.sdev(fit_data[n_state]['y'][j])
 
-            pm = lambda x, k : gv.mean(x) + k*gv.sdev(x)
-            y2 = np.repeat(pm(y_best, 0), len(tp))
-            y2_upper = np.repeat(pm(y_best, 1), len(tp))
-            y2_lower = np.repeat(pm(y_best, -1), len(tp))
+    #                 alpha = 0.05
+    #                 if vary_start and ti == self.t_range[model_type][0]:
+    #                     alpha=0.35
+    #                 elif (not vary_start) and ti == self.t_range[model_type][1]:
+    #                     alpha=0.35
 
-            # Ground state plot
-            plt.plot(tp, y2, '--')
-            plt.plot(tp, y2_upper, tp, y2_lower)
-            plt.fill_between(tp, y2_lower, y2_upper, facecolor = 'yellow', alpha = 0.25)
+    #                 plt.axvline(ti-0.5, linestyle='--', alpha=alpha)
+    #                 plt.axvline(ti+0.5, linestyle='--', alpha=alpha)
 
-            plt.ylabel(ylabel, fontsize=24)
-            plt.xlim(tlim[0], tlim[-1])
-
-            # Limit y-axis when comparing multiple states
-            if n_states_array is not None:
-                plt.ylim(pm(y_best, -5), pm(y_best, 5))
-
-            # Get unique markers when making legend
-            handles, labels = plt.gca().get_legend_handles_labels()
-            temp = {}
-            for j, handle in enumerate(handles):
-                temp[labels[j]] = handle
-
-            plt.legend([temp[label] for label in sorted(temp.keys())], [label for label in sorted(temp.keys())])
-
-            ###
-            # Set axes: next for Q-values
-            axQ = plt.axes([0.10,0.10,0.7,0.10])
-
-            for i, n_state in enumerate(sorted(fit_data.keys())):
-                t = fit_data[n_state]['t']
-                for ti in t:
-                    alpha = 0.05
-                    if vary_start and ti == self.t_range[model_type][0]:
-                        alpha=0.35
-                    elif (not vary_start) and ti == self.t_range[model_type][1]:
-                        alpha=0.35
-
-                    plt.axvline(ti-0.5, linestyle='--', alpha=alpha)
-                    plt.axvline(ti+0.5, linestyle='--', alpha=alpha)
+    #                 ti = ti + spacing[i]
+    #                 plt.errorbar(ti, y, xerr = 0.0, yerr=yerr, fmt=markers[i%len(markers)], mec='k', mfc='white', ms=10.0,
+    #                     capsize=5.0, capthick=1.0, elinewidth=5.0, alpha=0.9, ecolor=color, label=r"$N$=%s"%n_state)
 
 
-                t = t + spacing[i]
-                y = gv.mean(fit_data[n_state]['Q'])
-                yerr = gv.sdev(fit_data[n_state]['Q'])
-                color_data = fit_data[n_state]['chi2/df']
+    #         # Band for best result
 
-                sc = plt.scatter(t, y, vmin=0.25, vmax=1.75, marker=markers[i%len(markers)], c=color_data, cmap=cmap)
+    #         best_fit = self.get_fit()
+    #         y_best = best_fit.p[corr+'_E0']
+    #         ylabel = r'$E_0$'
 
-            # Set labels etc
-            plt.ylabel('$Q$', fontsize=24)
-            plt.xlabel('$t$', fontsize=24)
-            plt.ylim(-0.05, 1.05)
-            plt.xlim(tlim[0], tlim[-1])
+    #         tp = np.arange(t[0]-1, t[-1]+2)
+    #         tlim = (tp[0], tp[-1])
 
-            axC = plt.axes([0.85,0.10,0.05,0.80])
+    #         pm = lambda x, k : gv.mean(x) + k*gv.sdev(x)
+    #         y2 = np.repeat(pm(y_best, 0), len(tp))
+    #         y2_upper = np.repeat(pm(y_best, 1), len(tp))
+    #         y2_lower = np.repeat(pm(y_best, -1), len(tp))
 
-            colorbar = matplotlib.colorbar.ColorbarBase(axC, cmap=cmap,
-                                        norm=norm, orientation='vertical')
-            colorbar.set_label(r'$\chi^2_\nu$', fontsize = 24)
+    #         # Ground state plot
+    #         plt.plot(tp, y2, '--')
+    #         plt.plot(tp, y2_upper, tp, y2_lower)
+    #         plt.fill_between(tp, y2_lower, y2_upper, facecolor = 'yellow', alpha = 0.25)
 
-            fig = plt.gcf()
-            # plt.savefig(fig_name)
-            if show_plot == True: plt.show()
-            else: plt.close()
+    #         plt.ylabel(ylabel, fontsize=24)
+    #         plt.xlim(tlim[0], tlim[-1])
 
-        return fig
+    #         # Limit y-axis when comparing multiple states
+    #         if n_states_array is not None:
+    #             plt.ylim(pm(y_best, -5), pm(y_best, 5))
+
+    #         # Get unique markers when making legend
+    #         handles, labels = plt.gca().get_legend_handles_labels()
+    #         temp = {}
+    #         for j, handle in enumerate(handles):
+    #             temp[labels[j]] = handle
+
+    #         plt.legend([temp[label] for label in sorted(temp.keys())], [label for label in sorted(temp.keys())])
+
+    #         ###
+    #         # Set axes: next for Q-values
+    #         axQ = plt.axes([0.10,0.10,0.7,0.10])
+
+    #         for i, n_state in enumerate(sorted(fit_data.keys())):
+    #             t = fit_data[n_state]['t']
+    #             for ti in t:
+    #                 alpha = 0.05
+    #                 if vary_start and ti == self.t_range[model_type][0]:
+    #                     alpha=0.35
+    #                 elif (not vary_start) and ti == self.t_range[model_type][1]:
+    #                     alpha=0.35
+
+    #                 plt.axvline(ti-0.5, linestyle='--', alpha=alpha)
+    #                 plt.axvline(ti+0.5, linestyle='--', alpha=alpha)
+
+
+    #             t = t + spacing[i]
+    #             y = gv.mean(fit_data[n_state]['Q'])
+    #             yerr = gv.sdev(fit_data[n_state]['Q'])
+    #             color_data = fit_data[n_state]['chi2/df']
+
+    #             sc = plt.scatter(t, y, vmin=0.25, vmax=1.75, marker=markers[i%len(markers)], c=color_data, cmap=cmap)
+
+    #         # Set labels etc
+    #         plt.ylabel('$Q$', fontsize=24)
+    #         plt.xlabel('$t$', fontsize=24)
+    #         plt.ylim(-0.05, 1.05)
+    #         plt.xlim(tlim[0], tlim[-1])
+
+    #         axC = plt.axes([0.85,0.10,0.05,0.80])
+
+    #         colorbar = matplotlib.colorbar.ColorbarBase(axC, cmap=cmap,
+    #                                     norm=norm, orientation='vertical')
+    #         colorbar.set_label(r'$\chi^2_\nu$', fontsize = 24)
+
+    #         fig = plt.gcf()
+    #         # plt.savefig(fig_name)
+    #         if show_plot == True: plt.show()
+    #         else: plt.close()
+
+    #     return fig
 
 
     def return_best_fit_info(self,bs=None):
