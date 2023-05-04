@@ -20,7 +20,6 @@ p_dict = {
         'pi' : [5,30],
         'kplus': [8,28],
         'hyperons':   [5,15],
-        'all':   [5,15],
 
 
     },
@@ -36,7 +35,6 @@ p_dict = {
         'kplus': 2,
         'mesons':2,
 	    'hyperons'   :2,
-        'all':2
     },
 
      'tag':{

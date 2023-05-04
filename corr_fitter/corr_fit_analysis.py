@@ -17,70 +17,73 @@ from multiprocessing import Pool
 from functools import partial
 from copy import deepcopy
 
-from   corr_fitter.corr_fitter import fitter
+from   corr_fitter.corr_fitter import Fitter
 import corr_fitter.load_data_priors as ld
 
-def plot_fit_parameters(all_baryons, p_dict, abbr):
-    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
-    markers = ['o', 's', '^', 'v', 'D', 'P', 'X']
+def plot_fit_parameters(all_baryons, p_dict, abbr,pdf_filename):
+    with PdfPages(pdf_filename) as pdf:
+        colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
+        markers = ['o', 's', '^', 'v', 'D', 'P', 'X']
 
-    for particle_idx, particle in enumerate(p_dict['tag'].keys()):
-        fig, axs = plt.subplots(1, 2, figsize=(15, 5))
-        fig.suptitle(abbr + ' - ' + particle, fontsize=24, y=1.05)
+        for particle_idx, particle in enumerate(p_dict['tag'].keys()):
+            fig, axs = plt.subplots(1, 2, figsize=(15, 5))
+            fig.suptitle(abbr + ' - ' + particle, fontsize=24, y=1.05)
 
-        t_values = []
-        E0_values = []
-        E0_errors = []
-        q_values = []
-        chi_sq_values = []
+            t_values = []
+            E0_values = []
+            E0_errors = []
+            q_values = []
+            chi_sq_values = []
 
-        for t, fit_result in all_baryons.items():
-            t_values.append(t)
-            E0_values.append(fit_result.p[particle+'_E0'].mean)
-            E0_errors.append(fit_result.p[particle+'_E0'].sdev)
-            q_values.append(fit_result.Q)
-            chi_sq_values.append(fit_result.chi2 / fit_result.dof)
+            for t, fit_result in all_baryons.items():
+                t_values.append(t)
+                E0_values.append(fit_result.p[particle+'_E0'].mean)
+                E0_errors.append(fit_result.p[particle+'_E0'].sdev)
+                q_values.append(fit_result.Q)
+                chi_sq_values.append(fit_result.chi2 / fit_result.dof)
 
-        # Best fit band
-        best_fit_idx = np.argmin(chi_sq_values)
-        best_fit_E0 = E0_values[best_fit_idx]
-        tp = np.arange(t_values[0] - 1, t_values[-1] + 2)
-        y2 = np.repeat(best_fit_E0, len(tp))
-        y2_upper = np.repeat(best_fit_E0 + E0_errors[best_fit_idx], len(tp))
-        y2_lower = np.repeat(best_fit_E0 - E0_errors[best_fit_idx], len(tp))
+            # Best fit band
+            best_fit_idx = np.argmin(chi_sq_values)
+            best_fit_E0 = E0_values[best_fit_idx]
+            tp = np.arange(t_values[0] - 1, t_values[-1] + 2)
+            y2 = np.repeat(best_fit_E0, len(tp))
+            y2_upper = np.repeat(best_fit_E0 + E0_errors[best_fit_idx], len(tp))
+            y2_lower = np.repeat(best_fit_E0 - E0_errors[best_fit_idx], len(tp))
 
-        axs[0].plot(tp, y2, '--', color=colors[particle_idx])
-        axs[0].fill_between(tp, y2_lower, y2_upper, facecolor=colors[particle_idx], alpha=0.25)
+            axs[0].plot(tp, y2, '--', color=colors[particle_idx])
+            axs[0].fill_between(tp, y2_lower, y2_upper, facecolor=colors[particle_idx], alpha=0.25)
 
-        # Plot E0 fit parameters with error bars
-        axs[0].errorbar(t_values, E0_values, yerr=E0_errors, fmt=markers[particle_idx], color=colors[particle_idx], label=particle)
-        axs[0].set_title('Hyperon stability plot for n=2 states')
-        axs[0].set_ylabel('E0 fit parameter')
-        axs[0].legend()
+            # Plot E0 fit parameters with error bars
+            axs[0].errorbar(t_values, E0_values, yerr=E0_errors, fmt=markers[particle_idx], color=colors[particle_idx], label=particle)
+            axs[0].set_title('Hyperon stability plot for n=2 states')
+            axs[0].set_ylabel('E0 fit parameter')
+            axs[0].legend()
 
-        # Q-value plot
-        ax = axs[1]
-        ax.plot(t_values, q_values, marker='o', linestyle='')
-        ax.set_xlabel('Starting time slice')
-        ax.set_ylabel('Q-value')
+            # Q-value plot
+            ax = axs[1]
+            ax.plot(t_values, q_values, marker='o', linestyle='')
+            ax.set_xlabel('Starting time slice')
+            ax.set_ylabel('Q-value')
 
-        # Chi2/dof color map
-        cmap = matplotlib.cm.get_cmap('rainbow')
-        norm = matplotlib.colors.Normalize(vmin=0.25, vmax=1.75)
-        chi2_dof_values = [fit_result.chi2 / fit_result.dof for t, fit_result in all_baryons.items()]
-        colors = [cmap(norm(chi2_dof)) for chi2_dof in chi2_dof_values]
+            # Chi2/dof color map
+            cmap = matplotlib.cm.get_cmap('rainbow')
+            norm = matplotlib.colors.Normalize(vmin=0.25, vmax=1.75)
+            chi2_dof_values = [fit_result.chi2 / fit_result.dof for t, fit_result in all_baryons.items()]
+            colors = [cmap(norm(chi2_dof)) for chi2_dof in chi2_dof_values]
 
-        for t, chi2_dof, color in zip(t_values, chi2_dof_values, colors):
-            rect = plt.Rectangle((t - 0.5, 0), 1, chi2_dof, color=color)
-            axs[1].add_patch(rect)
+            for t, chi2_dof, color in zip(t_values, chi2_dof_values, colors):
+                rect = plt.Rectangle((t - 0.5, 0), 1, chi2_dof, color=color)
+                axs[1].add_patch(rect)
 
-        cax = fig.add_axes([0.95, 0.15, 0.02,0.7])
-        colorbar = matplotlib.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm, orientation='vertical')
-        colorbar.set_label(r'$\chi^2_\nu$', fontsize=24) 
-        plt.show()
+            cax = fig.add_axes([0.95, 0.15, 0.02,0.7])
+            colorbar = matplotlib.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm, orientation='vertical')
+            colorbar.set_label(r'$\chi^2_\nu$', fontsize=24) 
+            pdf.savefig(fig, bbox_inches='tight') 
+            plt.close(fig)  
+            plt.show()
 
 
-def analyze_hyperon_corrs(file_path, fit_params_path, t_end, model_type: str, bs: bool = False, bs_file: str = None,
+def analyze_hyperon_corrs(file_path, fit_params_path,corrs,t_start, t_end, model_type: str, bs: bool = False, bs_file: str = None,
                           bs_path: str = None, bs_N: int = None, bs_seed: str = None, show_eff=True,
                           t_plot_min=None, t_plot_max=None, show_fit=True):
     '''A wrapper to perform final analysis of hyperon spectrum'''
@@ -88,36 +91,24 @@ def analyze_hyperon_corrs(file_path, fit_params_path, t_end, model_type: str, bs
     fp = importlib.import_module(fit_params_path.split('/')[-1].split('.py')[0])
     p_dict = fp.p_dict
     prior = fp.prior
-    corrs = {
-        'lam': ld.get_raw_corr(file_path, p_dict['abbr'], particle='lambda_z'),
-        'xi': ld.get_raw_corr(file_path, p_dict['abbr'], particle='xi_z'),
-        'xi_st': ld.get_raw_corr(file_path, p_dict['abbr'], particle='xi_star_z'),
-        'sigma': ld.get_raw_corr(file_path, p_dict['abbr'], particle='sigma_p'),
-        'sigma_st': ld.get_raw_corr(file_path, p_dict['abbr'], particle='sigma_star_p'),
-        'proton': ld.get_raw_corr(file_path, p_dict['abbr'], particle='proton'),
-        'delta': ld.get_raw_corr(file_path, p_dict['abbr'], particle='delta_pp')
-    }
-
-    bs_M = corrs['lam']['SS'].shape[0]  # this could be any of the other corrs
     all_baryons = {}
-    t = np.arange(8, 17 + 1)  # TODO dont hardcode
+    t = np.arange(t_start, t_end + 1)
     for ti in t:
         t_range = [ti, t_end]
         corrs_copy = deepcopy(corrs)  # need this or else gvars are passed to gv.dataset.avg_data() on subsequent runs of t_range
-        fit_analysis = corr_fit_analysis(t_range=t_range, simult=True, t_period=64,
+        fit_analysis = Fitter_Analysis(t_range=t_range, simult=True, t_period=64,
                                          states=p_dict['hyperons'], p_dict=p_dict, n_states={'hyperons': 2},
                                          prior=prior, corr_gv=corrs_copy, model_type=model_type)
-        if show_eff:
-            fit_analysis.plot_effective_mass(t_plot_min=t_plot_min, t_plot_max=t_plot_max,
-                                             model_type=model_type, show_fit=show_fit)
-
         fit_result = fit_analysis.get_fit_forstab(t_range=t_range, n_states={'hyperons': 2})
         all_baryons[ti] = fit_result
         print(f"Fit result for t_range {t_range}: \n {fit_result}")
-
-    # print("All fit results:")
-    # print(all_baryons)
-
+    if show_eff:
+        corrs_copy = deepcopy(corrs)  # need this or else gvars are passed to gv.dataset.avg_data() on subsequent runs of t_range
+        fit_analysis_single_trange = Fitter_Analysis(t_range=p_dict['t_range'], simult=True, t_period=64,
+                                         states=p_dict['hyperons'], p_dict=p_dict, n_states=p_dict['n_states'],
+                                         prior=prior, corr_gv=corrs_copy, model_type=model_type)
+        fit_analysis_single_trange.plot_effective_mass(t_plot_min=t_plot_min, t_plot_max=t_plot_max,
+                                            model_type=model_type, show_fit=show_fit)
 
     # return my_fit
     # run bootstrapping routine -> bootstrapped h5 file based on baryon fit posterior
@@ -147,7 +138,7 @@ def analyze_hyperon_corrs(file_path, fit_params_path, t_end, model_type: str, bs
 
             # iterate with tqdm only once for faster performance
             for i in tqdm.tqdm(results, total=len(bs_N), desc='making fit with resampled hyperon correlators'):
-                all_baryons_bs = corr_fit_analysis(t_range=p_dict['t_range'], simult=True, t_period=64, states=p_dict['hyperons'], p_dict=p_dict,
+                all_baryons_bs = Fitter_Analysis(t_range=p_dict['t_range'], simult=True, t_period=64, states=p_dict['hyperons'], p_dict=p_dict,
                                                     n_states=p_dict['n_states'], prior=prior, corr_gv=i, model_type="all")
 
                 temp_fit = all_baryons_bs.get_fit()
@@ -177,8 +168,8 @@ def analyze_hyperon_corrs(file_path, fit_params_path, t_end, model_type: str, bs
     else:
         return all_baryons
 
-class corr_fit_analysis(object):
-    def __init__(self, t_period, prior,p_dict,t_range=None, n_states=None, model_type = None,states=None,simult=None,
+class Fitter_Analysis(object):
+    def __init__(self, t_period, prior,p_dict,t_range, n_states=None, model_type = None,states=None,simult=None,
                  corr_gv=None):
         #Convert correlator data into gvar dictionaries
         if corr_gv is not None:
@@ -194,13 +185,12 @@ class corr_fit_analysis(object):
             if data_gv is not None:
                 t_max = len(data_gv[list(data_gv.keys())[0]])
 
-        # Initialize t_range as a dictionary
-        if t_range is not None:
+        if isinstance(t_range,list): # for running multiple fit ranges not based on input file t_ranges
             t_start = t_range[0]
             t_end = t_range[1]
-            t_range = {model_type: [t_start, t_end]}
         else:
-            t_range = {}
+            t_start = np.min([t_range[key][0] for key in list(t_range.keys())])
+            t_end = np.max([t_range[key][1] for key in list(t_range.keys())])
 
         if isinstance(n_states, int):
             max_n_states = n_states
@@ -230,7 +220,7 @@ class corr_fit_analysis(object):
         if t_period is None:
             t_period = self.t_period
         
-        temp_fit = fitter(n_states=n_states,prior=self.prior,p_dict=self.p_dict, 
+        temp_fit = Fitter(n_states=n_states,prior=self.prior,p_dict=self.p_dict, 
                             t_range=t_range,states=self.states,simult=self.simult,
                             t_period=t_period,model_type=self.model_type, raw_corrs=self.corr_gv).get_fit()
     
@@ -245,14 +235,14 @@ class corr_fit_analysis(object):
             t_period = self.t_period
 
         index = tuple((t_range[key][0], t_range[key][1], n_states[key]) for key in sorted(t_range.keys()))
-        index = tuple((t_range[0], t_range[1], n_states[key]) for key in sorted(n_states.keys()))
+        # index = tuple((t_range[0], t_range[1], n_states[key]) for key in sorted(n_states.keys()))
 
         if index in list(self.fits.keys()):
             return self.fits[index]
         # if verbose:
         #     print(f"Using existing fit for index: {index}")
         else:
-            temp_fit = fitter(n_states=n_states,prior=self.prior,p_dict=self.p_dict, 
+            temp_fit = Fitter(n_states=n_states,prior=self.prior,p_dict=self.p_dict, 
                             t_range=t_range,states=self.states,simult=self.simult,
                             t_period=t_period,model_type=self.model_type, raw_corrs=self.corr_gv).get_fit()
     
@@ -264,22 +254,18 @@ class corr_fit_analysis(object):
     def _get_models(self, model_type=None):
         if model_type is None:
             return None
-        t=list(range(self.t_range[self.model_type][0], self.t_range[self.model_type][1]))
+        # t=list(range(self.t_range[self.model_type][0], self.t_range[self.model_type][1]))
 
-        return fitter(
+        return Fitter(
             n_states=self.n_states, states=self.states,prior=self.prior,simult=self.simult, p_dict=self.p_dict, 
-            t_range=t,t_period=self.t_period,model_type=self.model_type,raw_corrs=self.corr_gv
+            t_range=self.t_range,t_period=self.t_period,model_type=self.model_type,raw_corrs=self.corr_gv
             )._make_models_simult_fit()
     
 
     def _generate_data_from_fit(self, t, t_range=None,t_start=None, t_end=None, model_type=None, n_states=None):
         if model_type is None:
             return None
-        if t_range is None:
-            t_range = self.t_range[model_type]
-        if n_states is None:
-            n_states = self.n_states
-
+    
         if t_start is None:
             t_start = self.t_range[model_type][0]
         if t_end is None:
@@ -287,13 +273,11 @@ class corr_fit_analysis(object):
         if n_states is None:
             n_states = self.n_states
 
-        # Make
         t_range = {key : self.t_range[key] for key in list(self.t_range.keys())}
         t_range[model_type] = [t_start, t_end]
-        t = list(range(self.t_range[model_type][0], self.t_range[model_type][1]))
 
         models = self._get_models(model_type=model_type)
-        fit = self.get_fit_forstab(t_range=t_range, n_states=n_states)
+        fit = self.get_fit(t_range=t_range, n_states=n_states)
 
         output = {model.datatag : model.fitfcn(p=fit.p, t=t) for model in models}
         return output
@@ -325,13 +309,8 @@ class corr_fit_analysis(object):
         markers = ["o", "s"]
         colors = np.array(['tab:red', 'tab:blue', 'tab:green', 'tab:purple', 'tab:orange', 'tab:brown',
                         'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan'])
-        # t = np.arange(t_plot_min, t_plot_max)
-        t_range_model = self.t_range[model_type]
-        print(t_range_model[0])
-
-    # Update this line
-        t = list(range(t_range_model[0], t_range_model[1]))
-        t_range = [t_plot_min, t_plot_max]
+    
+        t = np.arange(t_plot_min, t_plot_max)
 
         effective_mass = {}
 
@@ -364,7 +343,7 @@ class corr_fit_analysis(object):
         if show_fit:
             t = np.linspace(t_plot_min - 2, t_plot_max + 2)
             dt = (t[-1] - t[0]) / (len(t) - 1)
-            fit_data_gv = self._generate_data_from_fit(t_range=t_range,model_type=model_type, t=t)
+            fit_data_gv = self._generate_data_from_fit(model_type=model_type, t=t)
             eff_mass_fit = {}
             for j, key in enumerate(fit_data_gv.keys()):
                 eff_mass_fit = self.compute_eff_mass(fit_data_gv, dt)[key][1:-1]
@@ -373,7 +352,7 @@ class corr_fit_analysis(object):
                 plt.plot(t[1:-1], pm(eff_mass_fit, 0), '--', color=colors[j % len(colors)])
                 plt.plot(t[1:-1], pm(eff_mass_fit, 1), t[1:-1], pm(eff_mass_fit, -1), color=colors[j % len(colors)])
                 plt.fill_between(t[1:-1], pm(eff_mass_fit, -1), pm(eff_mass_fit, 1),facecolor=colors[j % len(colors)], alpha=0.10, rasterized=True)
-            plt.title("Simultaneous fit to %d baryons for $N_{states} = $%s" % (len(effective_mass), self.n_states['all']), fontsize=18)
+            plt.title("Simultaneous fit to %d baryons for $N_{states} = $%s" % (len(effective_mass), self.n_states['hyperons']), fontsize=18)
 
             plt.xlim(t_plot_min - 0.5, t_plot_max - 0.5)
             plt.ylim(0.3, 1.3)

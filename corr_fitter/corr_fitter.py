@@ -4,9 +4,9 @@ import gvar as gv
 import matplotlib
 import matplotlib.pyplot as plt
 
-class fitter(object):
+class Fitter(object):
     '''
-    The `fitter` class is designed to fit models to hyperon data using least squares fitting.
+    The `Fitter` class is designed to fit models to hyperon data using least squares fitting.
     It takes in the prior information, raw correlator data, model information.
     '''
 
@@ -29,22 +29,18 @@ class fitter(object):
     def __str__(self):
         output = "Model Type:" + str(self.model_type) 
         output = output+"\n"
-
         output = output + "\t N_{corr} = "+str(self.n_states[self.model_type])+"\t"
         output = output+"\n"
         output += "Fit results: \n"
-
         output += str(self.get_fit())
         return output
 
     def get_fit(self):
         if self.fit is not None:
             return self.fit
-        else:
-            return self._make_fit()
+        return self._make_fit()
 
     def get_energies(self):
-
         # Don't rerun the fit if it's already been made
         if self.fit is not None:
             temp_fit = self.fit
@@ -82,10 +78,14 @@ class fitter(object):
                             'log(dE)' : datatag+'_log(dE)',
                             'z'       : datatag+'_z_'+sink
                         }
+                        if isinstance(self.t_range,list):# for running multiple fit ranges
+                            t = list(range(self.t_range[0], self.t_range[1]))
+                        else:
+                            t = list(range(self.t_range[datatag][0], self.t_range[datatag][1]))
+
                         models = np.append(models,
                                 baryon_model(datatag=datatag+"_"+sink,
-                                t=list(range(self.t_range[0], self.t_range[1])),
-                                param_keys=param_keys, n_states=self.n_states[self.model_type]))
+                                t=t,param_keys=param_keys, n_states=self.n_states[self.model_type]))
         return models 
 
     # data array needs to match size of t array
@@ -93,7 +93,11 @@ class fitter(object):
         data = {}
         for corr_type in ['lam', 'sigma', 'sigma_st', 'xi', 'xi_st','proton','delta']:
             for sinksrc in list(['SS','PS']):
-                data[corr_type + '_' + sinksrc] = self.raw_corrs[corr_type][sinksrc][self.t_range[0]:self.t_range[1]]
+                if isinstance(self.t_range,list): # for running multiple fit ranges
+                    data[corr_type + '_' + sinksrc] = self.raw_corrs[corr_type][sinksrc][self.t_range[0]:self.t_range[1]]
+                else:
+                    data[corr_type + '_' + sinksrc] = self.raw_corrs[corr_type][sinksrc][self.t_range[corr_type][0]:self.t_range[corr_type][1]]
+
         return data
 
     def _make_prior(self,prior):
