@@ -369,8 +369,7 @@ class Fitter_Analysis(object):
                 
         return eff_mass
 
-    def plot_effective_mass(self, t_plot_min=None, model_type=None,
-                            t_plot_max=None, show_plot=True, show_fit=True, fig_name=None):
+    def plot_effective_mass(self, t_plot_min=None, model_type=None, pdf_name=None,t_plot_max=None, show_plot=True, show_fit=True, fig_name=None):
         if t_plot_min is None:
             t_plot_min = self.t_min
         if t_plot_max is None:
@@ -387,8 +386,6 @@ class Fitter_Analysis(object):
             raise TypeError('you need to supply a correlator model in order to generate an eff mass plot for that correlator')
 
         effective_mass = self.compute_eff_mass(self.corr_gv)
-        print(effective_mass)
-
         y = {}
         y_err = {}
         lower_quantile = np.inf
@@ -440,13 +437,15 @@ class Fitter_Analysis(object):
             plt.ylabel('$M^{eff}_{baryon}$', fontsize=24)
             fig = plt.gcf()
             fig.set_size_inches(12, 7)
+            # with PdfPages(pdf_name) as pdf:
+            pdf_name.savefig(fig, bbox_inches='tight') 
+            plt.close(fig)
+            # if show_plot:
+            #     plt.show()
+            # else:
+            #     plt.close()
 
-            if show_plot:
-                plt.show()
-            else:
-                plt.close()
-
-            return fig
+            # return fig
     
 
     # def plot_stability(self, model_type=None, t_start=None, t_end=None, t_middle=None, vary_start=False, show_plot=True, n_states_array=None,fig_name=None):
