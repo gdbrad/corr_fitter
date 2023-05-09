@@ -86,6 +86,10 @@ class Fitter(object):
                         models = np.append(models,
                                 baryon_model(datatag=datatag+"_"+sink,
                                 t=t,param_keys=param_keys, n_states=self.n_states[self.model_type]))
+                        
+                        # models = np.append(models,
+                        #         baryon_model(datatag=datatag+"_"+sink,
+                        #         t=t,param_keys=param_keys, n_states=self.n_states))
         return models 
 
     # data array needs to match size of t array
@@ -103,7 +107,8 @@ class Fitter(object):
     def _make_prior(self,prior):
         resized_prior = {}
 
-        max_n_states = np.max([self.n_states[key] for key in list(self.n_states.keys())])
+        # max_n_states = np.max([self.n_states[key] for key in list(self.n_states.keys())])
+        max_n_states = 4
         for key in list(prior.keys()):
             resized_prior[key] = prior[key][:max_n_states]
 
