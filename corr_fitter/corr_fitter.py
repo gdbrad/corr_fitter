@@ -95,7 +95,7 @@ class Fitter(object):
             for sinksrc in list(['SS','PS']):
                 if isinstance(self.t_range,list): # for running multiple fit ranges
                     data[corr_type + '_' + sinksrc] = self.raw_corrs[corr_type][sinksrc][self.t_range[0]:self.t_range[1]]
-                else:
+                else: #accessing the t_range dictionary in input file 
                     data[corr_type + '_' + sinksrc] = self.raw_corrs[corr_type][sinksrc][self.t_range[corr_type][0]:self.t_range[corr_type][1]]
 
         return data

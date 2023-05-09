@@ -20,7 +20,7 @@ from copy import deepcopy
 from   corr_fitter.corr_fitter import Fitter
 import corr_fitter.load_data_priors as ld
 
-def plot_fit_parameters(all_baryons, p_dict, abbr,pdf_filename):
+def plot_stab(all_baryons, p_dict, abbr,pdf_filename):
     with PdfPages(pdf_filename) as pdf:
         colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
         markers = ['o', 's', '^', 'v', 'D', 'P', 'X']
@@ -83,8 +83,129 @@ def plot_fit_parameters(all_baryons, p_dict, abbr,pdf_filename):
             plt.show()
 
 
-def analyze_hyperon_corrs(file_path, fit_params_path,corrs,t_start, t_end, model_type: str, bs: bool = False, bs_file: str = None,
-                          bs_path: str = None, bs_N: int = None, bs_seed: str = None, show_eff=True,
+def plot_fit_parameters(all_baryons,best_fit_idx, p_dict, abbr,pdf_filename):
+    with PdfPages(pdf_filename) as pdf:
+        colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
+        markers = ['o', 's', '^', 'v', 'D', 'P', 'X']
+
+        for particle_idx, particle in enumerate(p_dict['tag'].keys()):
+            fig, axs = plt.subplots(1, 2, figsize=(15, 5))
+            fig.suptitle(abbr + ' - ' + particle, fontsize=24, y=1.05)
+
+            t_values = []
+            E0_dict = {}
+            q_values = []
+            chi_sq_values = []
+
+            for t_range, fit_result in all_baryons.items():
+                t_values.append(t_range)
+                E0_dict[t_range] = (fit_result.p[particle+'_E0'].mean, fit_result.p[particle+'_E0'].sdev)
+                q_values.append(fit_result.Q)
+                chi_sq_values.append(fit_result.chi2 / fit_result.dof)
+
+            # Best fit band
+            # best_fit_idx = np.argmin(chi_sq_values)
+            # best_fit_idk = t_values[best_fit_idx]
+            best_fit_E0, best_fit_E0_error = E0_dict[best_fit_idx]
+
+            # print(best_fit_idx)
+            # In the plot_fit_parameters function:
+# ...
+    # print(best_fit_idx)
+            # print(E0_dict)
+            best_fit_E0, best_fit_E0_error = E0_dict[best_fit_idx]
+            tp = np.arange(t_values[0][0] - 1, t_values[-1][-1] + 2)
+            y2 = np.repeat(best_fit_E0, len(tp))
+            y2_upper = np.repeat(best_fit_E0 + best_fit_E0_error, len(tp))
+            y2_lower = np.repeat(best_fit_E0 - best_fit_E0_error, len(tp))
+
+            axs[0].plot(tp, y2, '--', color=colors[particle_idx])
+            axs[0].fill_between(tp, y2_lower, y2_upper, facecolor=colors[particle_idx], alpha=0.25)
+
+            # # Plot E0 fit parameters with error bars
+            # E0_values = [E0_dict[t_range][0] for t_range in t_values]
+            # E0_errors = [E0_dict[t_range][1] for t_range in t_values]
+            # axs[0].errorbar([t[0] for t in t_values], E0_values, yerr=E0_errors, fmt=markers[particle_idx], color=colors[particle_idx], label=particle)
+            # axs[0].set_title('Hyperon stability plot for n=2 states')
+            # axs[0].set_ylabel('E0 fit parameter')
+            # axs[0].legend()
+
+            baryon_colors = ['tab:red', 'tab:blue', 'tab:green', 'tab:purple', 'tab:orange', 'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan']
+
+            E0_values = [E0_dict[t_range][0] for t_range in t_values]
+            E0_errors = [E0_dict[t_range][1] for t_range in t_values]
+            starts = [t[0] for t in t_values]
+            ends = [t[1] for t in t_values]
+
+            ax2 = axs[0].twiny()
+
+            unique_starts_ends = list(set(zip(starts, ends)))
+
+            for (start, end), color in zip(unique_starts_ends, baryon_colors):
+                filtered_indices = [(i, s_e) for i, s_e in enumerate(zip(starts, ends)) if s_e == (start, end)]
+                
+                # Compute the average E0 value and error for the given (start, end) tuple
+                avg_E0 = np.mean([E0_values[i] for i, _ in filtered_indices])
+                avg_E0_error = np.mean([E0_errors[i] for i, _ in filtered_indices])
+
+                axs[0].scatter(start, avg_E0, s=50, c=color, label=f"{particle} start")
+                ax2.scatter(end, avg_E0, s=50, c=color, label=f"{particle} end", facecolors='none')
+                axs[0].errorbar([start, end], [avg_E0, avg_E0], yerr=avg_E0_error, fmt='none', color=color)
+
+            axs[0].set_title('Hyperon stability plot for n=2 states')
+            axs[0].set_xlabel('t_start')
+            ax2.set_xlabel('t_end')
+            axs[0].set_ylabel('E0 fit parameter')
+
+            # Set the limits for the twin x-axis based on the t_end values
+            ax2.set_xlim(min(ends), max(ends))
+            # # Combine legends for both axes
+            # handles1, labels1 = axs[0].get_legend_handles_labels()
+            # handles2, labels2 = ax2.get_legend_handles_labels()
+            # axs[0].legend(handles1 + handles2, labels1 + labels2)
+
+            # Q-value plot
+            # Q-value plot
+            ax = axs[1]
+            ax2 = ax.twiny()
+
+            unique_starts_ends = list(set(zip(starts, ends)))
+
+            for (start, end), color in zip(unique_starts_ends, baryon_colors):
+                filtered_indices = [(i, s_e) for i, s_e in enumerate(zip(starts, ends)) if s_e == (start, end)]
+
+                # Compute the average Q value for the given (start, end) tuple
+                avg_q = np.mean([q_values[i] for i, _ in filtered_indices])
+
+                ax.scatter(start, avg_q, s=50, c=color, label=f"{particle} start")
+                ax2.scatter(end, avg_q, s=50, c=color, label=f"{particle} end", facecolors='none')
+
+            ax.set_xlabel('Starting time slice')
+            ax2.set_xlabel('Ending time slice')
+            ax.set_ylabel('Q-value')
+
+
+            # Chi2/dof color map
+            cmap = matplotlib.cm.get_cmap('rainbow')
+            norm = matplotlib.colors.Normalize(vmin=0.25, vmax=1.75)
+            chi2_dof_values = [fit_result.chi2 / fit_result.dof for t_range, fit_result in all_baryons.items()]
+            colors = [cmap(norm(chi2_dof)) for chi2_dof in chi2_dof_values]
+
+            for t, chi2_dof, color in zip([t[0] for t in t_values], chi2_dof_values, colors):
+                rect = plt.Rectangle((t - 0.5, 0), 1, chi2_dof, color=color)
+                axs[1].add_patch(rect)
+
+            cax = fig.add_axes([0.95, 0.15, 0.02,0.7])
+            colorbar = matplotlib.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm, orientation='vertical')
+            colorbar.set_label(r'$\chi^2_\nu$', fontsize=24) 
+            pdf.savefig(fig, bbox_inches='tight') 
+            plt.close(fig)  
+            plt.show()
+
+
+
+def analyze_hyperon_corrs(file_path, fit_params_path,best_fit_idx,corrs,pdf_filename,t_start, t_end, model_type: str,vary_start: bool=True, bs: bool = False, bs_file: str = None,
+                          bs_path: str = None, bs_N: int = None, bs_seed: str = None, show_eff=True,stability=True,
                           t_plot_min=None, t_plot_max=None, show_fit=True):
     '''A wrapper to perform final analysis of hyperon spectrum'''
     sys.path.append(os.path.dirname(os.path.abspath(fit_params_path)))
@@ -93,22 +214,32 @@ def analyze_hyperon_corrs(file_path, fit_params_path,corrs,t_start, t_end, model
     prior = fp.prior
     all_baryons = {}
     t = np.arange(t_start, t_end + 1)
+    t_ = np.arange(t_end, 20 + 1)
+
     for ti in t:
-        t_range = [ti, t_end]
-        corrs_copy = deepcopy(corrs)  # need this or else gvars are passed to gv.dataset.avg_data() on subsequent runs of t_range
-        fit_analysis = Fitter_Analysis(t_range=t_range, simult=True, t_period=64,
-                                         states=p_dict['hyperons'], p_dict=p_dict, n_states={'hyperons': 2},
-                                         prior=prior, corr_gv=corrs_copy, model_type=model_type)
-        fit_result = fit_analysis.get_fit_forstab(t_range=t_range, n_states={'hyperons': 2})
-        all_baryons[ti] = fit_result
-        print(f"Fit result for t_range {t_range}: \n {fit_result}")
+        for tf in t_:
+            if vary_start:
+                t_range = [ti,25]
+            else:
+                t_range = [ti, tf]
+            corrs_copy = deepcopy(corrs)  # need this or else gvars are passed to gv.dataset.avg_data() on subsequent runs of t_range
+            fit_analysis = Fitter_Analysis(t_range=t_range, simult=True, t_period=64,
+                                            states=p_dict['hyperons'], p_dict=p_dict, n_states={'hyperons': 2},
+                                            prior=prior, corr_gv=corrs_copy, model_type=model_type)
+            fit_result = fit_analysis.get_fit_forstab(t_range=t_range, n_states={'hyperons': 2})
+            all_baryons[(ti,tf)] = fit_result
+            print(f"Fit result for t_range {t_range}: \n {fit_result}")
+    if stability:
+        with PdfPages(pdf_filename) as pdf:
+            plot_fit_parameters(all_baryons=all_baryons,best_fit_idx=best_fit_idx, p_dict=p_dict,abbr=p_dict['abbr'],pdf_filename='stability_'+pdf_filename)
     if show_eff:
-        corrs_copy = deepcopy(corrs)  # need this or else gvars are passed to gv.dataset.avg_data() on subsequent runs of t_range
-        fit_analysis_single_trange = Fitter_Analysis(t_range=p_dict['t_range'], simult=True, t_period=64,
-                                         states=p_dict['hyperons'], p_dict=p_dict, n_states=p_dict['n_states'],
-                                         prior=prior, corr_gv=corrs_copy, model_type=model_type)
-        fit_analysis_single_trange.plot_effective_mass(t_plot_min=t_plot_min, t_plot_max=t_plot_max,
-                                            model_type=model_type, show_fit=show_fit)
+        with PdfPages(pdf_filename) as pdf:
+            corrs_copy = deepcopy(corrs)  # need this or else gvars are passed to gv.dataset.avg_data() on subsequent runs of t_range
+            fit_analysis_single_trange = Fitter_Analysis(t_range=p_dict['t_range'], simult=True, t_period=64,
+                                            states=p_dict['hyperons'], p_dict=p_dict, n_states=p_dict['n_states'],
+                                            prior=prior, corr_gv=corrs_copy, model_type=model_type)
+            fit_analysis_single_trange.plot_effective_mass(t_plot_min=t_plot_min, t_plot_max=t_plot_max,pdf_name=pdf,
+                                                model_type=model_type, show_fit=show_fit)
 
     # return my_fit
     # run bootstrapping routine -> bootstrapped h5 file based on baryon fit posterior
@@ -300,8 +431,7 @@ class Fitter_Analysis(object):
                 
         return eff_mass
 
-    def plot_effective_mass(self, t_plot_min=None, model_type=None,
-                            t_plot_max=None, show_plot=True, show_fit=True, fig_name=None):
+    def plot_effective_mass(self, t_plot_min=None, model_type=None, pdf_name=None,t_plot_max=None, show_plot=True, show_fit=True, fig_name=None):
         if t_plot_min is None:
             t_plot_min = self.t_min
         if t_plot_max is None:
@@ -318,8 +448,6 @@ class Fitter_Analysis(object):
             raise TypeError('you need to supply a correlator model in order to generate an eff mass plot for that correlator')
 
         effective_mass = self.compute_eff_mass(self.corr_gv)
-        print(effective_mass)
-
         y = {}
         y_err = {}
         lower_quantile = np.inf
@@ -371,13 +499,15 @@ class Fitter_Analysis(object):
             plt.ylabel('$M^{eff}_{baryon}$', fontsize=24)
             fig = plt.gcf()
             fig.set_size_inches(12, 7)
+            # with PdfPages(pdf_name) as pdf:
+            pdf_name.savefig(fig, bbox_inches='tight') 
+            plt.close(fig)
+            # if show_plot:
+            #     plt.show()
+            # else:
+            #     plt.close()
 
-            if show_plot:
-                plt.show()
-            else:
-                plt.close()
-
-            return fig
+            # return fig
     
 
     # def plot_stability(self, model_type=None, t_start=None, t_end=None, t_middle=None, vary_start=False, show_plot=True, n_states_array=None,fig_name=None):
