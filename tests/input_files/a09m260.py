@@ -7,17 +7,17 @@ p_dict = {
     'snks'     :['SS','PS'],
 
    't_range' : {
-        'sigma' : [10,20],
-        'proton' : [10,20],
-        'delta' : [10,20],
-        'xi' :  [10,20],
-        'xi_st' : [10,20],
-        'sigma_st' : [10,20],
-        'lam' : [10,20],
+        'sigma' : [5,25],
+        'proton' : [5,25],
+        'delta' : [5,25],
+        'xi' :  [5,25],
+        'xi_st' : [5,25],
+        'sigma_st' : [5,25],
+        'lam' : [5,25],
         'pi' : [5,30],
         'kplus': [8,28],
-        'hyperons':   [10,20],
-        'all':   [10,20]
+        'hyperons':   [5,25],
+        'all':   [5,25],
     },
 
     'tag':{
@@ -40,7 +40,7 @@ p_dict = {
         'pi' : 2,
         'kplus': 2,
         'hyperons': 2,
-        'all':2
+        'all':2,
 
     },
     

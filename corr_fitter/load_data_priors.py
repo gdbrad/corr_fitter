@@ -5,6 +5,18 @@ import numpy as np
 import os 
 import corr_fitter.bs_utils as bs 
 
+def get_corrs(data_file,p_dict):
+    corrs = {
+        'lam': get_raw_corr(data_file, p_dict['abbr'], particle='lambda_z'),
+        'xi': get_raw_corr(data_file, p_dict['abbr'], particle='xi_z'),
+        'xi_st': get_raw_corr(data_file, p_dict['abbr'], particle='xi_star_z'),
+        'sigma': get_raw_corr(data_file, p_dict['abbr'], particle='sigma_p'),
+        'sigma_st': get_raw_corr(data_file, p_dict['abbr'], particle='sigma_star_p'),
+        'proton': get_raw_corr(data_file, p_dict['abbr'], particle='proton'),
+        'delta': get_raw_corr(data_file, p_dict['abbr'], particle='delta_pp')
+    }
+    return corrs
+
 def generate_latex_line(hyperon_fit):
     ordered_keys = ['proton_E0', 'xi_E0', 'sigma_E0', 'lam_E0', 'xi_st_E0', 'delta_E0', 'sigma_st_E0']
     latex_line = ""
