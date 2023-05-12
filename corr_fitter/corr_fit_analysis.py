@@ -177,7 +177,6 @@ class Fitter_Analysis:
                 for key in list(fit_data.keys()):
                     fit_data[key] = {}
                     for particle in self.p_dict['tag'].keys():
-
                         fit_data[key][particle] = {
                         'y' : np.array([]),
                         'chi2/df' : np.array([]),
@@ -190,17 +189,17 @@ class Fitter_Analysis:
                 for ti in t:
                     t_range = {key : self.t_range[key] for key in list(self.t_range.keys())}
                     t_range[model_type] = [ti, t_end]
+                    print(t_range[model_type])
                     temp_fit = self.get_fit(t_range, n_states_dict)
-                    # print(temp_fit,"temp")
+                    print(temp_fit,"temp")
                     if temp_fit is not None:
                         if model_type == 'hyperons':
                             for particle in self.p_dict['tag'].keys():
                                 fit_data[n_state][particle]['y'] = np.append(fit_data[n_state][particle]['y'], temp_fit.p[particle+'_E0'])
                                 # fit_data[n_state]['chi2/df'] = np.append(fit_data[n_state]['chi2/df'], temp_fit.chi2 / temp_fit.dof)
                                 # fit_data[n_state]['Q'] = np.append(fit_data[n_state]['Q'], temp_fit.Q)
-                                # fit_data[n_state]['t'] = np.append(fit_data[n_state]['t'], ti)
-                                print(f"Appending data for particle {particle}, n_state {n_state}, time slice {t}")
-
+                                fit_data[n_state][particle]['t'] = np.append(fit_data[n_state][particle]['t'], ti)
+                                print(f"Appending data for particle {particle}, n_state {n_state}, time slice {ti}")
                                 print("temp_fit.p[corr+'_E0']:", temp_fit.p[particle+'_E0'])
                                 print("fit_data[n_state]['y']:", fit_data[n_state][particle]['y'])
 
@@ -422,8 +421,6 @@ class Fitter_Analysis:
             index = tuple((t_range[0], t_range[1], n_states.values()))
         else:
             index = tuple((t_range[key][0], t_range[key][1], n_states[key]) for key in sorted(t_range.keys()))
-
-
             if index in list(self.fits.keys()):
                 return self.fits[index]
         temp_fit = Fitter(n_states=n_states,prior=self.prior,p_dict=self.p_dict, 
@@ -431,30 +428,27 @@ class Fitter_Analysis:
                         model_type=self.model_type, raw_corrs=self.corr_gv).get_fit()
         
         self.fits[index] = temp_fit
-
-
         return temp_fit
 
-    def get_fit(self, t_range=None, n_states=None):
+    def get_fit(self, t_range=None, n_states=None,verbose=None):
         if t_range is None:
             t_range = self.t_range
         if n_states is None:
             n_states = self.n_states
 
         index = tuple((t_range[key][0], t_range[key][1], n_states[key]) for key in sorted(t_range.keys()))
-
+        if verbose:
+            print(f"Using existing fit for index: {index}")
         if index in list(self.fits.keys()):
             return self.fits[index]
-        # if verbose:
-        #     print(f"Using existing fit for index: {index}")
         else:
             temp_fit = Fitter(n_states=n_states,prior=self.prior,p_dict=self.p_dict, 
                             t_range=t_range,states=self.states,simult=self.simult,
                             model_type=self.model_type, raw_corrs=self.corr_gv).get_fit()
     
             self.fits[index] = temp_fit
-            # if verbose:
-            #     print(f"Created new fit for index: {index}")
+            if verbose:
+                print(f"Created new fit for index: {index}")
             return temp_fit
         
     def _get_models(self, model_type=None):
