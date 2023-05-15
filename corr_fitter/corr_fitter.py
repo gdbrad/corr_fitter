@@ -61,9 +61,10 @@ class Fitter:
         models = np.array([])
 
         if self.raw_corrs is not None:
-            for corr in self.raw_corrs:
+            for corr in self.states:
+                datatag = self.p_dict['tag'][corr]
                 for sink in list(['SS','PS']):
-                    datatag = self.p_dict['tag'][corr]
+                    print(datatag)
                     param_keys = {
                         'E0'      : datatag+'_E0',
                         'log(dE)' : datatag+'_log(dE)',
@@ -74,14 +75,20 @@ class Fitter:
                     models = np.append(models,
                             BaryonModel(datatag=datatag+"_"+sink,
                             t=t,param_keys=param_keys, n_states=self.n_states[self.model_type]))
+                    print(models)
         return models 
 
     # data array needs to match size of t array
     def _make_data(self):
         data = {}
-        for corr_type in ['lam', 'sigma', 'sigma_st', 'xi', 'xi_st','proton','delta']:
+        # for corr_type in ['lam', 'sigma', 'sigma_st', 'xi', 'xi_st','proton','delta']:
+        for corr_type in self.states:
             for sinksrc in list(['SS','PS']):
-                data[corr_type + '_' + sinksrc] = self.raw_corrs[corr_type][sinksrc][self.t_range[corr_type][0]:self.t_range[corr_type][1]]
+                if self.simult:
+                    data[corr_type + '_' + sinksrc] = self.raw_corrs[corr_type][sinksrc][self.t_range[corr_type][0]:self.t_range[corr_type][1]]
+                else:
+                     data[corr_type + '_' + sinksrc] = self.raw_corrs[sinksrc][self.t_range[corr_type][0]:self.t_range[corr_type][1]]
+
         return data
 
     def _make_prior(self,prior):

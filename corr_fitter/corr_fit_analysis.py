@@ -21,7 +21,7 @@ from   corr_fitter.corr_fitter import Fitter
 import corr_fitter.load_data_priors as ld
 
 
-def analyze_hyperon_corrs(file_path, fit_params_path, corrs,  t_start=None, t_end=None, pdf_name=None, 
+def analyze_hyperon_corrs(file_path, fit_params_path, corrs,states,  t_start=None, t_end=None, pdf_name=None, 
                           model_type=None, bs=False, bs_file=None, bs_path=None, bs_N=None, bs_seed=None, 
                           show_eff=False, show_stab=False, best_fit_t_idx=None, t_plot_min=None, t_plot_max=None, show_fit=False):
 
@@ -42,10 +42,10 @@ def analyze_hyperon_corrs(file_path, fit_params_path, corrs,  t_start=None, t_en
             t_range = [ti,t_end]
             corrs_copy = deepcopy(corrs)
             nstates_dict = {'hyperons': nstate}
-            fit_analysis = Fitter_Analysis(t_range=t_range, simult=True,
-                                            states=p_dict['hyperons'], p_dict=p_dict, n_states=nstates_dict,
+            fit_analysis = Fitter_Analysis(t_range=t_range, simult=False,
+                                            states=states,, p_dict=p_dict, n_states=nstates_dict,
                                             prior=prior, corr_gv=corrs_copy, model_type=model_type)
-            fit_result = fit_analysis.get_fit_forstab(t_range=t_range)
+            fit_result = fit_analysis.get_fit_forstab(t_range=t_range,n_states=nstates_dict)
             print("fit_result for nstate:", nstate, "and time slice:", ti, "is", fit_result)  # Debug print
             all_hyperons[ti][nstate] = fit_result
         print("all_hyperons after completing all time slices for nstate:", nstate, "is", all_hyperons)  # Debug print
