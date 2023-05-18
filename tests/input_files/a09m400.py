@@ -2,22 +2,19 @@ import gvar as gv
 import numpy as np 
 p_dict = {
     'abbr' : 'a09m400',
-    'hyperons' : ['lambda_z', 'sigma_p', 'sigma_star_p', 'xi_star_z', 'xi_z'], 
     'srcs'     :['S'],
     'snks'     :['SS','PS'],
 
    't_range' : {
-        'sigma' : [10,20],
-        'proton' : [10,20],
-        'delta' : [10,20],
-        'xi' :  [10,20],
-        'xi_st' : [10,20],
-        'sigma_st' : [10,20],
-        'lam' : [10,20],
-        'pi' : [5,30],
-        'kplus': [8,28],
-        'hyperons':   [10,20],
-        'all':   [10,20]
+        'sigma_p' : [4,19],
+        'proton' : [5,19],
+        'delta_pp' : [5,19],
+        'xi_z' :  [5,17],
+        'xi_star_z' : [3,18],
+        'sigma_star_p' : [3,17],
+        'lambda_z' : [3,20],
+        'hyperons':   [3,19],
+        'all':   [3,19]
     },
 
     'tag':{
@@ -30,18 +27,15 @@ p_dict = {
         'delta' : 'delta'
     },
     'n_states' : {
-        'sigma' : 2,
-        'delta': 2,
-        'proton': 2,
-        'sigma_st':2,
-        'xi' :2,
-        'xi_st':2,
-        'lam':2,
-        'pi' : 2,
-        'kplus': 2,
+        'sigma_p' : 3,
+        'delta_pp': 3,
+        'proton': 3,
+        'sigma_star_p':3,
+        'xi_z' :3,
+        'xi_star_z':4,
+        'lambda_z':3,
         'hyperons': 2,
-        'all':2
-
+        'all':2,
     },
     
     'make_plots' : True,
@@ -69,11 +63,11 @@ prior = {
     'lam_E': np.array(['0.5(3)', '0.7(3.2)', '1.1(3.2)', '1.3(3.2)'], dtype=object),
     'lam_z_PS': np.array(['0.0(3.3)e-04', '0.0(3.3)e-04', '0.0(3.3)e-03', '0.0(3.3)e-03'],dtype=object),
     'lam_z_SS': np.array(['4.4(4.4)e-05', '4.4(4.4)e-05', '4.4(4.4)e-06', '4.4(4.4)e-06'],dtype=object),
-    'xi_E': np.array(['0.5(30)', '0.6(32)', '0.8(32)', '1.55(32)'], dtype=object),
+    'xi_E': np.array(['0.62(2)', '0.8(32)', '0.9(32)', '1.55(32)'], dtype=object),
     'xi_st_E': np.array(['0.5(30)', '0.7(32)', '0.8(32)', '1.55(32)'], dtype=object),
-    'xi_st_z_PS': np.array(['0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-08', '0.0(3.3)e-08'],dtype=object),
+    'xi_st_z_PS': np.array(['0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03'],dtype=object),
     'xi_st_z_SS': np.array(['0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03'],dtype=object),
-    'xi_z_PS': np.array(['0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-08', '0.0(3.3)e-08'],dtype=object),
+    'xi_z_PS': np.array(['0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03'],dtype=object),
     'xi_z_SS': np.array(['0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03'],dtype=object),
     }
 '''

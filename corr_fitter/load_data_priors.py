@@ -5,31 +5,64 @@ import numpy as np
 import os 
 import corr_fitter.bs_utils as bs 
 
+def group_prior_dict(prior):
+    new_prior = {}
+
+    # Define the states list and the mapping
+    states = ['proton', 'delta_pp', 'lambda_z', 'sigma_p', 'sigma_star_p', 'xi_star_z', 'xi_z']
+    mapping = {
+        'proton': 'proton',
+        'delta': 'delta_pp',
+        'lam': 'lambda_z',
+        'sigma_st': 'sigma_star_p',
+        'sigma': 'sigma_p',
+        'xi_st': 'xi_star_z',
+        'xi': 'xi_z'
+    }
+
+    # Check if the dictionary is already in the nested format
+    if isinstance(list(prior.values())[0], dict):
+        return prior
+
+    for key, value in prior.items():
+        for old_prefix in sorted(mapping.keys(), key=len, reverse=True):
+            new_prefix = mapping[old_prefix]
+            if key.startswith(old_prefix):
+                new_key = key.replace(old_prefix, new_prefix)
+                for state in states:
+                    if new_key.startswith(state):
+                        if state not in new_prior:
+                            new_prior[state] = {} # Initialize a new dictionary for this state
+                        new_prior[state][new_key] = value # Store the value in the new dictionary
+                        break
+                break  # Ensure that once a replacement is made, no further replacements are attempted for this key
+
+    return new_prior
+
 def get_corrs(data_file,p_dict):
     corrs = {
-        'lam': get_raw_corr(data_file, p_dict['abbr'], particle='lambda_z'),
-        'xi': get_raw_corr(data_file, p_dict['abbr'], particle='xi_z'),
-        'xi_st': get_raw_corr(data_file, p_dict['abbr'], particle='xi_star_z'),
-        'sigma': get_raw_corr(data_file, p_dict['abbr'], particle='sigma_p'),
-        'sigma_st': get_raw_corr(data_file, p_dict['abbr'], particle='sigma_star_p'),
-        'proton': get_raw_corr(data_file, p_dict['abbr'], particle='proton'),
-        'delta': get_raw_corr(data_file, p_dict['abbr'], particle='delta_pp')
+        'lam': get_raw_corr(data_file, p_dict['abbr'], particle='lambda_z',normalize=True),
+        'xi': get_raw_corr(data_file, p_dict['abbr'], particle='xi_z',normalize=True),
+        'xi_st': get_raw_corr(data_file, p_dict['abbr'], particle='xi_star_z',normalize=True),
+        'sigma': get_raw_corr(data_file, p_dict['abbr'], particle='sigma_p',normalize=True),
+        'sigma_st': get_raw_corr(data_file, p_dict['abbr'], particle='sigma_star_p',normalize=True),
+        'proton': get_raw_corr(data_file, p_dict['abbr'], particle='proton',normalize=True),
+        'delta': get_raw_corr(data_file, p_dict['abbr'], particle='delta_pp',normalize=True)
     }
     return corrs
 
-def generate_latex_line(hyperon_fit):
-    ordered_keys = ['proton_E0', 'xi_E0', 'sigma_E0', 'lam_E0', 'xi_st_E0', 'delta_E0', 'sigma_st_E0']
-    latex_line = ""
+# def generate_latex_line(hyperon_fit):
+#     ordered_keys = ['proton_E0', 'xi_E0', 'sigma_E0', 'lam_E0', 'xi_st_E0', 'delta_E0', 'sigma_st_E0']
+#     latex_line = ""
+#     for key in ordered_keys:
+#         if key in hyperon_fit.p:
+#             p = hyperon_fit.p[key]
+#             latex_line += f"{p} & "
+#         else:
+#             latex_line += "& "
 
-    for key in ordered_keys:
-        if key in hyperon_fit.p:
-            p = hyperon_fit.p[key]
-            latex_line += f"{p} & "
-        else:
-            latex_line += "& "
-
-    # Remove the last ampersand and space
-    latex_line = latex_line[:-2]
+#     # Remove the last ampersand and space
+#     latex_line = latex_line[:-2]
 
     return latex_line
 

@@ -61,43 +61,50 @@ class Fitter:
         models = np.array([])
 
         if self.raw_corrs is not None:
-            for corr in self.states:
-                datatag = self.p_dict['tag'][corr]
-                for sink in list(['SS','PS']):
-                    print(datatag)
-                    param_keys = {
-                        'E0'      : datatag+'_E0',
-                        'log(dE)' : datatag+'_log(dE)',
-                        'z'       : datatag+'_z_'+sink
-                    }
-                    t = list(range(self.t_range[datatag][0], self.t_range[datatag][1]))
+            # corr = self.states
+            datatag = self.states
+            for sink in list(['SS','PS']):
+                param_keys = {
+                    'E0'      : datatag+'_E0',
+                    'log(dE)' : datatag+'_log(dE)',
+                    'z'       : datatag+'_z_'+sink
+                }
+                t = list(range(self.t_range[datatag][0], self.t_range[datatag][1]))
 
-                    models = np.append(models,
-                            BaryonModel(datatag=datatag+"_"+sink,
-                            t=t,param_keys=param_keys, n_states=self.n_states[self.model_type]))
-                    print(models)
+                models = np.append(models,
+                        BaryonModel(datatag=datatag+"_"+sink,
+                        t=t,param_keys=param_keys, n_states=self.n_states[self.model_type]))
         return models 
 
     # data array needs to match size of t array
     def _make_data(self):
         data = {}
         # for corr_type in ['lam', 'sigma', 'sigma_st', 'xi', 'xi_st','proton','delta']:
-        for corr_type in self.states:
-            for sinksrc in list(['SS','PS']):
-                if self.simult:
-                    data[corr_type + '_' + sinksrc] = self.raw_corrs[corr_type][sinksrc][self.t_range[corr_type][0]:self.t_range[corr_type][1]]
-                else:
-                     data[corr_type + '_' + sinksrc] = self.raw_corrs[sinksrc][self.t_range[corr_type][0]:self.t_range[corr_type][1]]
+        corr_type = self.states
+        for sinksrc in list(['SS','PS']):
+            if self.simult:
+                data[corr_type + '_' + sinksrc] = self.raw_corrs[corr_type][sinksrc][self.t_range[corr_type][0]:self.t_range[corr_type][1]]
+            else:
+                    data[corr_type + '_' + sinksrc] = self.raw_corrs[sinksrc][self.t_range[corr_type][0]:self.t_range[corr_type][1]]
 
         return data
 
     def _make_prior(self,prior):
         resized_prior = {}
+        for key, value in prior.items():
+            if isinstance(value, dict):
+                for subkey, subvalue in value.items():
+                    resized_prior[subkey] = subvalue
+            else:
+                resized_prior[key] = value
 
         max_n_states = np.max([self.n_states[key] for key in list(self.n_states.keys())])
         # max_n_states = 4
-        for key in list(prior.keys()):
-            resized_prior[key] = prior[key][:max_n_states]
+        # for key in list(prior.keys()):
+        #     for key in prior:
+        #         print(f"{key}: {type(prior[key])}")
+
+        #     resized_prior[key] = prior[key][:max_n_states]
 
         new_prior = resized_prior.copy()
         if self.simult:
@@ -111,18 +118,20 @@ class Fitter:
                     temp_gvar = gv.gvar(temp.mean,temp2.sdev)
                     new_prior[corr+'_log(dE)'][j] = np.log(temp_gvar)
         else:
-            for corr in self.states:
-                new_prior[corr+'_E0'] = resized_prior[corr+'_E'][0]
-                new_prior.pop(corr+'_E', None)
+            corr = self.states
+            # for corr in list(self.states):
+            #     print(corr)
+            new_prior[corr+'_E0'] = resized_prior[corr+'_E'][0]
+            new_prior.pop(corr+'_E', None)
 
-        # We force the energy to be positive by using the log-normal dist of dE
-        # let log(dE) ~ eta; then dE ~ e^eta
-                new_prior[corr+'_log(dE)'] = gv.gvar(np.zeros(len(resized_prior[corr+'_E']) - 1))
-                for j in range(len(new_prior[corr+'_log(dE)'])):
-                    temp = gv.gvar(resized_prior[corr+'_E'][j+1]) - gv.gvar(resized_prior[corr+'_E'][j])
-                    temp2 = gv.gvar(resized_prior[corr+'_E'][j+1])
-                    temp_gvar = gv.gvar(temp.mean,temp2.sdev)
-                    new_prior[corr+'_log(dE)'][j] = np.log(temp_gvar)
+    # We force the energy to be positive by using the log-normal dist of dE
+    # let log(dE) ~ eta; then dE ~ e^eta
+            new_prior[corr+'_log(dE)'] = gv.gvar(np.zeros(len(resized_prior[corr+'_E']) - 1))
+            for j in range(len(new_prior[corr+'_log(dE)'])):
+                temp = gv.gvar(resized_prior[corr+'_E'][j+1]) - gv.gvar(resized_prior[corr+'_E'][j])
+                temp2 = gv.gvar(resized_prior[corr+'_E'][j+1])
+                temp_gvar = gv.gvar(temp.mean,temp2.sdev)
+                new_prior[corr+'_log(dE)'][j] = np.log(temp_gvar)
 
         return new_prior
 

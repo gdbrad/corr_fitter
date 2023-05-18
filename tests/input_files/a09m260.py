@@ -7,17 +7,15 @@ p_dict = {
     'snks'     :['SS','PS'],
 
    't_range' : {
-        'sigma' : [5,25],
-        'proton' : [5,25],
-        'delta' : [5,25],
-        'xi' :  [5,25],
-        'xi_st' : [5,25],
-        'sigma_st' : [5,25],
-        'lam' : [5,25],
-        'pi' : [5,30],
-        'kplus': [8,28],
-        'hyperons':   [5,25],
-        'all':   [5,25],
+        'sigma_p' : [5,23],
+        'proton' : [4,23],
+        'delta_pp' : [4,23],
+        'xi_z' :  [5,22],
+        'xi_star_z' : [5,23],
+        'sigma_star_p' : [4,23],
+        'lambda_z' : [4,23],
+        'hyperons':   [4,23],
+        'all':   [4,23],
     },
 
     'tag':{
@@ -30,18 +28,15 @@ p_dict = {
         'delta' : 'delta'
     },
     'n_states' : {
-        'sigma' : 2,
-        'delta': 2,
-        'proton': 2,
-        'sigma_st':2,
-        'xi' :2,
-        'xi_st':2,
-        'lam':2,
-        'pi' : 2,
-        'kplus': 2,
-        'hyperons': 2,
+        'sigma_p' : 3,
+        'delta_pp': 4,
+        'proton': 3,
+        'sigma_star_p':4,
+        'xi_z' :3,
+        'xi_star_z':3,
+        'lambda_z':3,
+        'hyperons': 3,
         'all':2,
-
     },
     
     'make_plots' : True,
@@ -54,39 +49,25 @@ p_dict = {
 
 prior = gv.BufferDict()
 prior = {
-    'proton_E': np.array(['0.4(30)', '0.7(3.2)', '1.1(3.2)', '1.3(3.2)'], dtype=object),
-    'proton_z_PS': np.array(['0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03'],dtype=object),
+    'proton_E': np.array(['0.47(10)', '0.7(3.2)', '1.1(3.2)', '1.3(3.2)'], dtype=object),
+    'proton_z_PS': np.array(['1.1(1.1)e-04', '1.1(1.1)e-04', '1.1(1.1)e-04', '1.1(1.1)e-04'],dtype=object),
     'proton_z_SS': np.array(['4.4(4.4)e-06', '4.4(4.4)e-06', '4.4(4.4)e-06', '4.4(4.4)e-06'],dtype=object),
-    'delta_E': np.array(['0.6(3.3)', '0.7(3.2)', '1.1(3.2)', '1.3(3.2)'], dtype=object),
+    'delta_E': np.array(['0.6(10)', '0.7(3.2)', '1.1(3.2)', '1.3(3.2)'], dtype=object),
     'delta_z_PS': np.array(['0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03'],dtype=object),
     'delta_z_SS': np.array(['4.4(4.4)e-06', '4.4(4.4)e-06', '4.4(4.4)e-06', '4.4(4.4)e-06'],dtype=object),
-    'sigma_E': np.array(['0.5(30)', '0.7(32)', '1.0(3.2)', '1.1(3.2)'], dtype=object),
+    'sigma_E': np.array(['0.55(10)', '0.7(32)', '1.0(3.2)', '1.1(3.2)'], dtype=object),
+    'sigma_z_PS': np.array(['0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03'],dtype=object),
+    'sigma_z_SS': np.array(['0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03'],dtype=object),
     'sigma_st_E': np.array(['0.5(3)', '0.6(32)', '1.0(3.2)', '1.1(3.2)'], dtype=object),
     'sigma_st_z_PS': np.array(['0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03'],dtype=object),
     'sigma_st_z_SS': np.array(['0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03'],dtype=object),
-    'sigma_z_PS': np.array(['0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03'],dtype=object),
-    'sigma_z_SS': np.array(['0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03'],dtype=object),
     'lam_E': np.array(['0.5(3)', '0.7(3.2)', '1.1(3.2)', '1.3(3.2)'], dtype=object),
     'lam_z_PS': np.array(['0.0(3.3)e-04', '0.0(3.3)e-04', '0.0(3.3)e-03', '0.0(3.3)e-03'],dtype=object),
     'lam_z_SS': np.array(['4.4(4.4)e-05', '4.4(4.4)e-05', '4.4(4.4)e-06', '4.4(4.4)e-06'],dtype=object),
-    'xi_E': np.array(['0.5(30)', '0.6(32)', '0.8(32)', '1.55(32)'], dtype=object),
-    'xi_st_E': np.array(['0.5(30)', '0.7(32)', '0.8(32)', '1.55(32)'], dtype=object),
-    'xi_st_z_PS': np.array(['0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-08', '0.0(3.3)e-08'],dtype=object),
-    'xi_st_z_SS': np.array(['0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03'],dtype=object),
-    'xi_z_PS': np.array(['0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-08', '0.0(3.3)e-08'],dtype=object),
+    'xi_E': np.array(['0.6(10)', '0.8(32)', '0.9(32)', '1.55(32)'], dtype=object),
+    'xi_z_PS': np.array(['0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03'],dtype=object),
     'xi_z_SS': np.array(['0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03'],dtype=object),
+    'xi_st_E': np.array(['0.7(20)', '0.9(32)', '1.0(32)', '1.55(32)'], dtype=object),
+    'xi_st_z_PS': np.array(['0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03'],dtype=object),
+    'xi_st_z_SS': np.array(['0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03', '0.0(3.3)e-03'],dtype=object),
     }
-'''
-$\delta_{GMO}$ xpt extrapolation model and prior information
-'''
-model_info = {}
-model_info['particles'] = ['piplus','kplus','eta']
-model_info['order_chiral'] = 'lo'
-model_info['tree_level'] = True
-model_info['loop_level'] = False
-model_info['delta'] = True
-model_info['abbr'] = ['a12m180L']
-model_info['observable'] = ['delta_gmo'] #'centroid', 'octet'
-
-
-# TODO put prior routines in here, filename save options 
