@@ -4,16 +4,15 @@ import gvar as gv
 import matplotlib
 import matplotlib.pyplot as plt
 
-class Fitter(object):
+class Fitter:
     '''
     The `Fitter` class is designed to fit models to hyperon data using least squares fitting.
     It takes in the prior information, raw correlator data, model information.
     '''
 
-    def __init__(self, n_states,prior, t_period,t_range,states,
+    def __init__(self, n_states,prior,t_range,states,
                  p_dict=None,raw_corrs=None,model_type=None,simult=None):
         self.n_states = n_states
-        self.t_period = t_period
         self.t_range = t_range
         self.prior = prior
         self.p_dict = p_dict
@@ -25,15 +24,7 @@ class Fitter(object):
         self.prior = self._make_prior(prior)
         effective_mass = {}
         self.effective_mass = effective_mass
-    
-    def __str__(self):
-        output = "Model Type:" + str(self.model_type) 
-        output = output+"\n"
-        output = output + "\t N_{corr} = "+str(self.n_states[self.model_type])+"\t"
-        output = output+"\n"
-        output += "Fit results: \n"
-        output += str(self.get_fit())
-        return output
+
 
     def get_fit(self):
         if self.fit is not None:
@@ -55,9 +46,9 @@ class Fitter(object):
         return output
 
     def _make_fit(self):
-        # Essentially: first we create a model (which is a subclass of MultiFitter)
-        # Then we make a fitter using the models
-        # Finally, we make the fit with our two sets of correlators
+        '''first we create a model (which is a subclass of MultiFitter),
+            Then we make a fitter using the models.
+            Finally, we make the fit with our sets of correlators'''
 
         models = self._make_models_simult_fit()
         data = self._make_data()
@@ -70,47 +61,50 @@ class Fitter(object):
         models = np.array([])
 
         if self.raw_corrs is not None:
-                for corr in self.raw_corrs:
-                    for sink in list(['SS','PS']):
-                        datatag = self.p_dict['tag'][corr]
-                        param_keys = {
-                            'E0'      : datatag+'_E0',
-                            'log(dE)' : datatag+'_log(dE)',
-                            'z'       : datatag+'_z_'+sink
-                        }
-                        if isinstance(self.t_range,list):# for running multiple fit ranges
-                            t = list(range(self.t_range[0], self.t_range[1]))
-                        else:
-                            t = list(range(self.t_range[datatag][0], self.t_range[datatag][1]))
+            # corr = self.states
+            datatag = self.states
+            for sink in list(['SS','PS']):
+                param_keys = {
+                    'E0'      : datatag+'_E0',
+                    'log(dE)' : datatag+'_log(dE)',
+                    'z'       : datatag+'_z_'+sink
+                }
+                t = list(range(self.t_range[datatag][0], self.t_range[datatag][1]))
 
-                        models = np.append(models,
-                                baryon_model(datatag=datatag+"_"+sink,
-                                t=t,param_keys=param_keys, n_states=self.n_states[self.model_type]))
-                        
-                        # models = np.append(models,
-                        #         baryon_model(datatag=datatag+"_"+sink,
-                        #         t=t,param_keys=param_keys, n_states=self.n_states))
+                models = np.append(models,
+                        BaryonModel(datatag=datatag+"_"+sink,
+                        t=t,param_keys=param_keys, n_states=self.n_states[self.model_type]))
         return models 
 
     # data array needs to match size of t array
     def _make_data(self):
         data = {}
-        for corr_type in ['lam', 'sigma', 'sigma_st', 'xi', 'xi_st','proton','delta']:
-            for sinksrc in list(['SS','PS']):
-                if isinstance(self.t_range,list): # for running multiple fit ranges
-                    data[corr_type + '_' + sinksrc] = self.raw_corrs[corr_type][sinksrc][self.t_range[0]:self.t_range[1]]
-                else: #accessing the t_range dictionary in input file 
-                    data[corr_type + '_' + sinksrc] = self.raw_corrs[corr_type][sinksrc][self.t_range[corr_type][0]:self.t_range[corr_type][1]]
+        # for corr_type in ['lam', 'sigma', 'sigma_st', 'xi', 'xi_st','proton','delta']:
+        corr_type = self.states
+        for sinksrc in list(['SS','PS']):
+            if self.simult:
+                data[corr_type + '_' + sinksrc] = self.raw_corrs[corr_type][sinksrc][self.t_range[corr_type][0]:self.t_range[corr_type][1]]
+            else:
+                    data[corr_type + '_' + sinksrc] = self.raw_corrs[sinksrc][self.t_range[corr_type][0]:self.t_range[corr_type][1]]
 
         return data
 
     def _make_prior(self,prior):
         resized_prior = {}
+        for key, value in prior.items():
+            if isinstance(value, dict):
+                for subkey, subvalue in value.items():
+                    resized_prior[subkey] = subvalue
+            else:
+                resized_prior[key] = value
 
-        # max_n_states = np.max([self.n_states[key] for key in list(self.n_states.keys())])
-        max_n_states = 4
-        for key in list(prior.keys()):
-            resized_prior[key] = prior[key][:max_n_states]
+        max_n_states = np.max([self.n_states[key] for key in list(self.n_states.keys())])
+        # max_n_states = 4
+        # for key in list(prior.keys()):
+        #     for key in prior:
+        #         print(f"{key}: {type(prior[key])}")
+
+        #     resized_prior[key] = prior[key][:max_n_states]
 
         new_prior = resized_prior.copy()
         if self.simult:
@@ -124,24 +118,26 @@ class Fitter(object):
                     temp_gvar = gv.gvar(temp.mean,temp2.sdev)
                     new_prior[corr+'_log(dE)'][j] = np.log(temp_gvar)
         else:
-            for corr in self.states:
-                new_prior[corr+'_E0'] = resized_prior[corr+'_E'][0]
-                new_prior.pop(corr+'_E', None)
+            corr = self.states
+            # for corr in list(self.states):
+            #     print(corr)
+            new_prior[corr+'_E0'] = resized_prior[corr+'_E'][0]
+            new_prior.pop(corr+'_E', None)
 
-        # We force the energy to be positive by using the log-normal dist of dE
-        # let log(dE) ~ eta; then dE ~ e^eta
-                new_prior[corr+'_log(dE)'] = gv.gvar(np.zeros(len(resized_prior[corr+'_E']) - 1))
-                for j in range(len(new_prior[corr+'_log(dE)'])):
-                    temp = gv.gvar(resized_prior[corr+'_E'][j+1]) - gv.gvar(resized_prior[corr+'_E'][j])
-                    temp2 = gv.gvar(resized_prior[corr+'_E'][j+1])
-                    temp_gvar = gv.gvar(temp.mean,temp2.sdev)
-                    new_prior[corr+'_log(dE)'][j] = np.log(temp_gvar)
+    # We force the energy to be positive by using the log-normal dist of dE
+    # let log(dE) ~ eta; then dE ~ e^eta
+            new_prior[corr+'_log(dE)'] = gv.gvar(np.zeros(len(resized_prior[corr+'_E']) - 1))
+            for j in range(len(new_prior[corr+'_log(dE)'])):
+                temp = gv.gvar(resized_prior[corr+'_E'][j+1]) - gv.gvar(resized_prior[corr+'_E'][j])
+                temp2 = gv.gvar(resized_prior[corr+'_E'][j+1])
+                temp_gvar = gv.gvar(temp.mean,temp2.sdev)
+                new_prior[corr+'_log(dE)'][j] = np.log(temp_gvar)
 
         return new_prior
 
-class baryon_model(lsqfit.MultiFitterModel):
+class BaryonModel(lsqfit.MultiFitterModel):
     def __init__(self, datatag, t, param_keys, n_states):
-        super(baryon_model, self).__init__(datatag)
+        super(BaryonModel, self).__init__(datatag)
         # variables for fit
         self.t = np.array(t)
         self.n_states = n_states

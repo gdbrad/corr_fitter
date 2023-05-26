@@ -2,22 +2,19 @@ import gvar as gv
 import numpy as np 
 p_dict = {
     'abbr' : 'a09m310_o',
-    'hyperons' : ['lambda_z', 'sigma_p', 'sigma_star_p', 'xi_star_z', 'xi_z'], 
     'srcs'     :['S'],
     'snks'     :['SS','PS'],
 
    't_range' : {
-        'sigma' : [10,20],
-        'proton' : [10,20],
-        'delta' : [10,20],
-        'xi' :  [10,20],
-        'xi_st' : [10,20],
-        'sigma_st' : [10,20],
-        'lam' : [10,20],
-        'pi' : [5,30],
-        'kplus': [8,28],
-        'hyperons':   [10,20],
-        'all':   [10,20]
+        'sigma_p' : [4,19],
+        'proton' : [3,19],
+        'delta_pp' : [3,19],
+        'xi_z' :  [5,19],
+        'xi_star_z' : [3,19],
+        'sigma_star_p' : [4,17],
+        'lambda_z' : [5,18],
+        'hyperons':   [3,19],
+        'all':   [3,19]
     },
 
     'tag':{
@@ -30,18 +27,15 @@ p_dict = {
         'delta' : 'delta'
     },
     'n_states' : {
-        'sigma' : 2,
-        'delta': 2,
-        'proton': 2,
-        'sigma_st':2,
-        'xi' :2,
-        'xi_st':2,
-        'lam':2,
-        'pi' : 2,
-        'kplus': 2,
+        'sigma_p' : 3,
+        'delta_pp': 3,
+        'proton': 3,
+        'sigma_star_p':3,
+        'xi_z' :3,
+        'xi_star_z':3,
+        'lambda_z':3,
         'hyperons': 2,
-        'all':2
-
+        'all':2,
     },
     
     'make_plots' : True,
