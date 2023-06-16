@@ -3,6 +3,21 @@ from numpy.random import Generator, SeedSequence, PCG64
 import hashlib
 
 
+def fast_resample_correlator(corr,fit, bs_seed, bs_N):
+            bs_M = corr['SS'].shape[0]
+            bs_list = np.random.randint(low=0, high=bs_M, size=(bs_N, bs_M))
+            
+            resampled_raw_corr_data = {key: corr[key][bs_list[n, :], :] for key in corr.keys() for n in range(bs_N)}
+            fit_parameters_keys = sorted(fit.p.keys())
+            return {key: [] for key in fit_parameters_keys}, resampled_raw_corr_data
+
+def parallel_resample_correlator(correlators,fit,seed,j):
+            correlators_bs = {}
+            for r in correlators:
+                correlator_bs = fast_resample_correlator(corr=correlators[r],fit=fit,bs_seed=seed, bs_N=j)
+                correlators_bs[r] = correlator_bs
+            return correlators_bs
+
 def get_rng(seed: str, verbose=False):
     """Generate a random number generator based on a seed string."""
     # Over python iteration the traditional hash was changed. So, here we fix it to md5
@@ -40,7 +55,7 @@ def get_bs_list(Ndata, Nbs, Mbs=None, seed=None, verbose=False):
 
     # make BS list: [low, high)
     bs_list = rng.integers(low=0, high=Ndata, size=[Nbs, m_bs])
-
+    np.savetxt("bs_list_.txt", bs_list, fmt="%d")
     return bs_list
 
 

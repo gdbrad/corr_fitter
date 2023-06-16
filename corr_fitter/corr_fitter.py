@@ -148,10 +148,12 @@ class BaryonModel(lsqfit.MultiFitterModel):
         if t is None:
             t = self.t
         z = p[self.param_keys['z']]
+        # print
         # print(self.param_keys)
         E0 = p[self.param_keys['E0']]
         log_dE = p[self.param_keys['log(dE)']]
         output = z[0] * np.exp(-E0 * t)
+        # print(z[0])
         for j in range(1, self.n_states):
             excited_state_energy = E0 + np.sum([np.exp(log_dE[k]) for k in range(j)], axis=0)
             output = output +z[j] * np.exp(-excited_state_energy * t)

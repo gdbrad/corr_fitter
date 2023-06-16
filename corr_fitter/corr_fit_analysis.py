@@ -1,9 +1,6 @@
-import time
 import sys
-import lsqfit
 import h5py as h5
 import os
-import pandas as pd
 import numpy as np
 import gvar as gv
 import matplotlib
@@ -19,8 +16,12 @@ from copy import deepcopy
 
 from   corr_fitter.corr_fitter import Fitter
 import corr_fitter.load_data_priors as ld
+# import corr_fitter.bs_analysis as bs_analysis
+from corr_fitter import bs_utils
 
-def perform_fit_analysis(input_dir, data_file,abbr,all=None,baryon=None):
+
+def perform_fit_analysis(input_dir, data_file,abbr,all=None,baryon=None,show_plots=None,
+                         bs=None,bs_N=None,bs_path=None,bs_file=None,seed=None,bs_out=None,bs_h5=None):
     fit_params = os.path.join(input_dir, f"{abbr}.py")
     pdf_name = 'output_stability'+abbr +'.pdf'
     t_plot_min = 0
@@ -32,116 +33,97 @@ def perform_fit_analysis(input_dir, data_file,abbr,all=None,baryon=None):
     prior = ld.group_prior_dict(prior)
     new_prior = {}
     nstates = p_dict['n_states']
-    corr = {}
     E0_vals = []
     hyperons = ['proton','xi_z','sigma_p','lambda_z','xi_star_z', 'delta_pp', 'sigma_star_p']
-    if all:
-        for state in hyperons:
-            print(f"N_states: {nstates[state]}")
-            print(f"Baryon: {state}")
-            print(f"t_range: {p_dict['t_range'][state]}")
-            corr = ld.get_raw_corr(data_file, p_dict['abbr'], particle=state)
-            new_prior = prior[state]
-            fit_analysis = Fitter_Analysis(t_range=p_dict['t_range'], simult=False,
-                                        states=state, p_dict=p_dict, n_states=nstates,
-                                        prior=new_prior, corr_gv=corr, model_type=state)
-            # print(fit_analysis)
-            fit_out = fit_analysis.get_fit()
-            print(fit_out)
-            E0_vals.append(fit_out.p[state+"_E0"])
-            fit_analysis.plot_stability_single(model_type=state, t_start=5, t_end=25, vary_start=True,
-                                    show_plot=True,n_states_array=[1,2,3,4])
-            fit_analysis.plot_effective_mass(t_plot_min=t_plot_min, t_plot_max=t_plot_max,
-                                                show_plot=True, show_fit=True)
+    if baryon:
+        states = [baryon] if isinstance(baryon, str) else baryon
     else:
-        if baryon is not None:
-            state = baryon
-            print(f"N_states: {nstates[state]}")
-            print(f"Baryon: {state}")
-            print(f"t_range: {p_dict['t_range'][state]}")
-            corr = ld.get_raw_corr(data_file, p_dict['abbr'], particle=state)
-            new_prior = prior[state]
-            fit_analysis = Fitter_Analysis(t_range=p_dict['t_range'], simult=False,
-                                        states=state, p_dict=p_dict, n_states=nstates,
-                                        prior=new_prior, corr_gv=corr, model_type=state)
-            # print(fit_analysis)
-            fit_out = fit_analysis.get_fit()
-            print(fit_out)
-            E0_vals.append(fit_out.p[state+"_E0"])
+        states = hyperons
+
+    for state in states:
+        corrs = ld.get_corrs(data_file=data_file,particles=[state],p_dict=p_dict)
+        print(f"N_states: {nstates[state]}")
+        print(f"Baryon: {state}")
+        print(f"t_range: {p_dict['t_range'][state]}")
+        new_prior = prior[state]
+        fit_analysis = Fitter_Analysis(t_range=p_dict['t_range'], simult=False,
+                                    states=state, p_dict=p_dict, n_states=nstates,
+                                    prior=new_prior, corr_gv=corrs, model_type=state)
+        hyperon_fit = fit_analysis.get_fit()
+        print(hyperon_fit)
+        print('\n')
+        print(hyperon_fit.y)
+        print('\n')
+        print(gv.evalcorr(hyperon_fit.y))
+        E0_vals.append(hyperon_fit.p[state+"_E0"])
+        if show_plots:
             fit_analysis.plot_stability_single(model_type=state, t_start=5, t_end=25, vary_start=True,
-                                    show_plot=True,n_states_array=[1,2,3,4])
+                                show_plot=True,n_states_array=[1,2,3,4])
             fit_analysis.plot_effective_mass(t_plot_min=t_plot_min, t_plot_max=t_plot_max,
-                                                show_plot=True, show_fit=True)
+                                            show_plot=True, show_fit=True)
+            
+        if bs:
+            '''run bootstrap fit routine '''
+            bs_M = corrs['SS'].shape[0]
+            bs_list = bs_utils.get_bs_list(bs_M,bs_N)
 
-    
+            raw_corr = ld.get_raw_corr(data_file, p_dict['abbr'], particle=state)
+
+            def resample_correlator(bs_list, n):
+                resampled_raw_corr_data = ({key : raw_corr[key][bs_list[n, :]]
+                            for key in raw_corr.keys()})
+
+                resampled_corr_gv = resampled_raw_corr_data
+                return resampled_corr_gv
+
+            fit_parameters_keys = sorted(hyperon_fit.p.keys()) 
+            output = {key : [] for key in fit_parameters_keys}
+
+            for j in tqdm.tqdm(range(bs_N), desc='bootstrap'):
+                gv.switch_gvar() 
+
+                temp_correlators = resample_correlator(bs_list, j)
+                fit_analysis_bs = Fitter_Analysis(t_range=p_dict['t_range'], simult=False,
+                                    states=state, p_dict=p_dict, n_states=nstates,
+                                    prior=new_prior, corr_gv=temp_correlators, model_type=state)
+                hyperon_fit_bs = fit_analysis_bs.get_fit()
+                print(hyperon_fit_bs)
+                for key in fit_parameters_keys:
+                    p = hyperon_fit_bs.pmean[key]
+                    output[key].append(p)
+                gv.restore_gvar()
+            if bs_out is None:
+                gv.dump(output,'bs_results.p')
+            else:
+                gv.dump(output,bs_out)
+
+            table = gv.dataset.avg_data(output, bstrap=True)
+            print('\n\n', gv.tabulate(table))
+            if bs_h5:
+                post_bs = {}
+                for r in output:
+                    output[r]  = np.array(output[r])
+
+                with h5.File(bs_file, 'a') as f5:
+                    try:
+                        f5.create_group(bs_path)
+                    except Exception as e:
+                        print(e)
+                    for r in output:
+                        if len(output[r]) > 0:
+                            if r in f5[bs_path]:
+                                del f5[bs_path+'/'+r]
+                            f5.create_dataset(bs_path+'/'+r, data=output[r])
+
     latex_line = ' & '.join([f'{val}' for val in E0_vals])
-   
     print(latex_line)
-    # if bs:
-    #     def fast_resample_correlator(corr, bs_seed, bs_N):
-    #         bs_M = corrs['lam']['SS'].shape[0]
-    #         bs_list = np.random.randint(low=0, high=bs_M, size=(bs_N, bs_M))
-            
-    #         resampled_raw_corr_data = {key: corr[key][bs_list[n, :], :] for key in corr.keys() for n in range(bs_N)}
-    #         fit_parameters_keys = sorted(hyperon_fit.p.keys())
-    #         return {key: [] for key in fit_parameters_keys}, resampled_raw_corr_data
-            
-    #     bs_N = range(bs_N)
-    #     bs_list = np.random.randint(low=0, high=bs_M, size=(bs_N, bs_M))
-
-
-    #     def parallel_resample_correlator(bs_list, correlators, j):
-    #         correlators_bs = {}
-    #         for r in correlators:
-    #             correlator_bs = fast_resample_correlator(correlators[r], bs_list, j)
-    #             correlators_bs[r] = correlator_bs
-    #         return correlators_bs
-
-    #     with Pool(processes=4) as p:
-    #         output = {key: [] for key in hyperon_fit.keys()}
-    #         results = p.imap_unordered(partial(parallel_resample_correlator, bs_list), bs_N)
-
-    #         # iterate with tqdm only once for faster performance
-    #         for i in tqdm.tqdm(results, total=len(bs_N), desc='making fit with resampled hyperon correlators'):
-    #             all_hyperons_bs = Fitter_Analysis(t_range=p_dict['t_range'], simult=True, t_period=64, states=p_dict['hyperons'], p_dict=p_dict,
-    #                                                 n_states=p_dict['n_states'], prior=prior, corr_gv=i, model_type="all")
-
-    #             temp_fit = all_hyperons_bs.get_fit()
-    #             for key in hyperon_fit.keys():
-    #                 p = temp_fit.pmean[key]
-    #                 output[key].append(p)
-
-    #     table = gv.dataset.avg_data(output, bstrap=True)
-    #     print('\n\n', gv.tabulate(table))
-
-    #     post_bs = {}
-
-    #     for r in output:
-    #         output[r]  = np.array(output[r])
-
-    #     with h5.File(bs_file, 'a') as f5:
-    #         try:
-    #             f5.create_group(bs_path)
-    #         except Exception as e:
-    #             print(e)
-    #         for r in output:
-    #             if len(output[r]) > 0:
-    #                 if r in f5[bs_path]:
-    #                     del f5[bs_path+'/'+r]
-    #                 f5.create_dataset(bs_path+'/'+r, data=output[r])
+        
     return
 
 
 class Fitter_Analysis:
     def __init__(self, prior,p_dict,t_range, n_states=None, model_type = None,states=None,simult=None,
                  corr_gv=None):
-        #Convert correlator data into gvar dictionaries
-        if corr_gv is not None:
-            for key, value in corr_gv.items():
-                corr_gv[key] = gv.dataset.avg_data(value)
-        else:
-            corr_gv = None
-        # Default to a 1 state fit
         if n_states is None:
             n_states = 1
 
@@ -166,8 +148,6 @@ class Fitter_Analysis:
         self.t_min = int(t_start/2)
         self.t_max = int(np.min([t_end, t_end]))
         self.fits = {}
-        
-        #self.bs = None
 
     def get_fit_forstab(self, t_range=None, n_states=None):
         if t_range is None:
@@ -211,8 +191,6 @@ class Fitter_Analysis:
     def _get_models(self, model_type=None):
         if model_type is None:
             return None
-        # t=list(range(self.t_range[self.model_type][0], self.t_range[self.model_type][1]))
-
         return Fitter(
             n_states=self.n_states, states=self.states,prior=self.prior,simult=self.simult, p_dict=self.p_dict, 
             t_range=self.t_range,model_type=self.model_type,raw_corrs=self.corr_gv
@@ -277,7 +255,6 @@ class Fitter_Analysis:
         if corr_gv is None:
             corr_gv = self.corr_gv
 
-        # Add magenta, cyan color array?
         markers = ["o", "s"]
         colors = np.array(['tab:red', 'tab:blue', 'tab:green', 'tab:purple', 'tab:orange', 'tab:brown',
                         'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan'])
@@ -629,8 +606,6 @@ class Fitter_Analysis:
 
         plt.legend([temp[label] for label in sorted(temp.keys())], [label for label in sorted(temp.keys())])
 
-        ###
-        # Set axes: next for Q-values
         axQ = plt.axes([0.10,0.10,0.7,0.10])
 
         plot_Q_values()
