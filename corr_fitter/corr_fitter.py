@@ -53,7 +53,7 @@ class Fitter:
         models = self._make_models_simult_fit()
         data = self._make_data()
         fitter_ = lsqfit.MultiFitter(models=models)
-        fit = fitter_.lsqfit(data=data, prior=self.prior)
+        fit = fitter_.lsqfit(data=data, prior=self.prior,fitter='scipy_least_squares')
         self.fit = fit
         return fit
 
@@ -66,8 +66,10 @@ class Fitter:
             for sink in list(['SS','PS']):
                 param_keys = {
                     'E0'      : datatag+'_E0',
-                    'log(dE)' : datatag+'_log(dE)',
-                    'z'       : datatag+'_z_'+sink
+                    'log(dE)' : 'log(dE_'+datatag+')',
+                    'z_src' : datatag+'_z_'+sink[0],
+                    'z_snk' : datatag+'_z_'+sink[1]
+
                 }
                 t = list(range(self.t_range[datatag][0], self.t_range[datatag][1]))
 
@@ -112,11 +114,13 @@ class Fitter:
                 new_prior[corr+'_E0'] = resized_prior[corr+'_E'][0]
                 new_prior.pop(corr+'_E', None)
                 new_prior[corr+'_log(dE)'] = gv.gvar(np.zeros(len(resized_prior[corr+'_E']) - 1))
+                pion_E_0  = gv.gvar(0.243, .01)
                 for j in range(len(new_prior[corr+'_log(dE)'])):
-                    temp = gv.gvar(resized_prior[corr+'_E'][j+1]) - gv.gvar(resized_prior[corr+'_E'][j])
-                    temp2 = gv.gvar(resized_prior[corr+'_E'][j+1])
-                    temp_gvar = gv.gvar(temp.mean,temp2.sdev)
-                    new_prior[corr+'_log(dE)'][j] = np.log(temp_gvar)
+                    temp_gvar = gv.gvar(np.log(2*pion_E_0.mean), 0.7)
+                    # temp = gv.gvar(resized_prior[corr+'_E'][j+1]) - gv.gvar(resized_prior[corr+'_E'][j])
+                    # temp2 = gv.gvar(resized_prior[corr+'_E'][j+1])
+                    # temp_gvar = gv.gvar(temp.mean,temp2.sdev)
+                    new_prior[corr+'_log(dE)'][j] = temp_gvar
         else:
             corr = self.states
             # for corr in list(self.states):
@@ -126,12 +130,22 @@ class Fitter:
 
     # We force the energy to be positive by using the log-normal dist of dE
     # let log(dE) ~ eta; then dE ~ e^eta
-            new_prior[corr+'_log(dE)'] = gv.gvar(np.zeros(len(resized_prior[corr+'_E']) - 1))
-            for j in range(len(new_prior[corr+'_log(dE)'])):
-                temp = gv.gvar(resized_prior[corr+'_E'][j+1]) - gv.gvar(resized_prior[corr+'_E'][j])
-                temp2 = gv.gvar(resized_prior[corr+'_E'][j+1])
-                temp_gvar = gv.gvar(temp.mean,temp2.sdev)
-                new_prior[corr+'_log(dE)'][j] = np.log(temp_gvar)
+            pion_E_0  = gv.gvar(0.243, .01)
+            temp_gvar = gv.gvar(np.log(2*pion_E_0.mean), 0.7)
+
+            new_prior['log(dE_'+corr+')'] = gv.gvar(np.zeros(len(resized_prior[corr+'_E']) - 1))
+            for j in range(len(new_prior['log(dE_'+corr+')'])):
+
+                # temp = gv.gvar(resized_prior[corr+'_E'][j+1]) - gv.gvar(resized_prior[corr+'_E'][j])
+                # temp2 = gv.gvar(resized_prior[corr+'_E'][j+1])
+                # temp_gvar = gv.gvar(temp.mean,temp2.sdev)
+                new_prior['log(dE_'+corr+')'][j] = temp_gvar
+
+        def set_prior_Z(input_prior, p_key, n_states):
+            m = gv.mean(input_prior[p_key])
+            sd = gv.sdev(input_prior[p_key])
+            k = 3
+            return [gv.gvar(m, sd) if n==0 else gv.gvar(m, k *m) for n in range(n_states)]
 
         return new_prior
 
@@ -147,16 +161,13 @@ class BaryonModel(lsqfit.MultiFitterModel):
     def fitfcn(self, p, t=None):
         if t is None:
             t = self.t
-        z = p[self.param_keys['z']]
-        # print
-        # print(self.param_keys)
+        zz = p[self.param_keys['z_src']]* p[self.param_keys['z_snk']]
         E0 = p[self.param_keys['E0']]
         log_dE = p[self.param_keys['log(dE)']]
-        output = z[0] * np.exp(-E0 * t)
-        # print(z[0])
+        output = zz[0] * np.exp(-E0 * t)
         for j in range(1, self.n_states):
             excited_state_energy = E0 + np.sum([np.exp(log_dE[k]) for k in range(j)], axis=0)
-            output = output +z[j] * np.exp(-excited_state_energy * t)
+            output = output +zz[j] * np.exp(-excited_state_energy * t)
         return output
 
     def fcn_effective_mass(self, p, t=None):

@@ -13,10 +13,10 @@ import tqdm
 from multiprocessing import Pool
 from functools import partial
 from copy import deepcopy
+import datetime
 
 from   corr_fitter.corr_fitter import Fitter
 import corr_fitter.load_data_priors as ld
-# import corr_fitter.bs_analysis as bs_analysis
 from corr_fitter import bs_utils
 
 
@@ -62,18 +62,17 @@ def perform_fit_analysis(input_dir, data_file,abbr,all=None,baryon=None,show_plo
             fit_analysis.plot_effective_mass(t_plot_min=t_plot_min, t_plot_max=t_plot_max,
                                             show_plot=True, show_fit=True)
             
+        #run bootstrap fit routine#
         if bs:
-            '''run bootstrap fit routine '''
-            bs_M = corrs['SS'].shape[0]
-            bs_list = bs_utils.get_bs_list(bs_M,bs_N)
-
             raw_corr = ld.get_raw_corr(data_file, p_dict['abbr'], particle=state)
+            ncfg = raw_corr['SS'].shape[0]
+            bs_list = bs_utils.get_bs_list(ncfg,bs_N,seed=seed)
 
             def resample_correlator(bs_list, n):
-                resampled_raw_corr_data = ({key : raw_corr[key][bs_list[n, :]]
+                resampled_raw_corr_data = ({key : raw_corr[key][bs_list[n, :],:]
                             for key in raw_corr.keys()})
 
-                resampled_corr_gv = resampled_raw_corr_data
+                resampled_corr_gv = gv.dataset.avg_data(resampled_raw_corr_data)
                 return resampled_corr_gv
 
             fit_parameters_keys = sorted(hyperon_fit.p.keys()) 
@@ -81,19 +80,18 @@ def perform_fit_analysis(input_dir, data_file,abbr,all=None,baryon=None,show_plo
 
             for j in tqdm.tqdm(range(bs_N), desc='bootstrap'):
                 gv.switch_gvar() 
-
                 temp_correlators = resample_correlator(bs_list, j)
                 fit_analysis_bs = Fitter_Analysis(t_range=p_dict['t_range'], simult=False,
                                     states=state, p_dict=p_dict, n_states=nstates,
-                                    prior=new_prior, corr_gv=temp_correlators, model_type=state)
+                                    prior=new_prior, corr_gv=temp_corrs, model_type=state)
                 hyperon_fit_bs = fit_analysis_bs.get_fit()
-                print(hyperon_fit_bs)
+                # print(hyperon_fit_bs)
                 for key in fit_parameters_keys:
                     p = hyperon_fit_bs.pmean[key]
                     output[key].append(p)
                 gv.restore_gvar()
             if bs_out is None:
-                gv.dump(output,'bs_results.p')
+                gv.dump(output,'bs_results_'+datetime.datetime.today+'.p')
             else:
                 gv.dump(output,bs_out)
 

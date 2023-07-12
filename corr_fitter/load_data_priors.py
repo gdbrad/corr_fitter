@@ -1,4 +1,3 @@
-import pandas as pd
 import gvar as gv 
 import h5py as h5 
 import numpy as np 
@@ -19,7 +18,6 @@ def group_prior_dict(prior):
         'xi_st': 'xi_star_z',
         'xi': 'xi_z'
     }
-
     # Check if the dictionary is already in the nested format
     if isinstance(list(prior.values())[0], dict):
         return prior
@@ -32,20 +30,22 @@ def group_prior_dict(prior):
                 for state in states:
                     if new_key.startswith(state):
                         if state not in new_prior:
-                            new_prior[state] = {} # Initialize a new dictionary for this state
-                        new_prior[state][new_key] = value # Store the value in the new dictionary
+                            new_prior[state] = {} 
+                        new_prior[state][new_key] = value 
                         break
-                break  # Ensure that once a replacement is made, no further replacements are attempted for this key
+                break 
 
     return new_prior
 
 def get_corrs(data_file,particles,p_dict):
+    """forming a gvar averaged dataset for the raw correlator data"""
     output = {}
     for part in particles:
         output.update(get_raw_corr(data_file,p_dict['abbr'],part))
     return gv.dataset.avg_data(output)
 
 def get_raw_corr(file_h5,abbr,particle,normalize=None):
+    """fetching raw correlator data from h5 file"""
     data = {}
     data_normalized = {}
     particle_path = '/'+abbr+'/'+particle
@@ -60,6 +60,7 @@ def get_raw_corr(file_h5,abbr,particle,normalize=None):
     return data
 
 def pickle_out(fit_out,out_path,species=None):
+    """save out fit parameters to a pickled file able to be handled by gvar"""
     if not os.path.exists(out_path):
         os.makedirs(out_path)
     fit_dump = {}
@@ -71,4 +72,3 @@ def pickle_out(fit_out,out_path,species=None):
         return gv.dump(fit_dump,out_path+'meson_fit_params')
     elif species == 'hyperons':
         return gv.dump(fit_dump,out_path+'hyperons')
-
